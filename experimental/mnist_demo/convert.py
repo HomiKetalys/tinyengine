@@ -16,7 +16,7 @@
 # Target ISA:  ARMv7E-M
 # ----------------------------------------------------------------------
 
-from code_generator.CodegenUtilTFlite import GenerateSourceFilesFromTFlite
+from common_utils.tinyengine.code_generator.CodegenUtilTFlite import GenerateSourceFilesFromTFlite
 
 # 1: Let's first build our pretrained VWW model
 # 2: To deploy the model on MCU, we need to first convert the model to an Intermediate Representation (IR) and

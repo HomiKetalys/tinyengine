@@ -55,6 +55,7 @@ default_params = {
     "output2_c": None,
     "output2_idx": None,
     "output2_dtype": "int8",
+    "act":0,
 }
 
 
@@ -224,7 +225,12 @@ class DepthwiseConv2d(basicOperator):
                 string += f"shift{parsed_idx},multiplier{parsed_idx},"
 
             # output: zero point, min, max, output tensor, shape
-            string += f"{str(params['output_zero_point'])},{str(params['input_zero_point'] * -1)},-128,127,"
+            min_act=-128
+            max_act=127
+            if params['act']==3:
+                min_act=params['output_zero_point']
+                max_act=min(127,round(6/params['output_scale']+params['output_zero_point']))
+            string += f"{str(params['output_zero_point'])},{str(params['input_zero_point'] * -1)},{min_act},{max_act},"
             if params["need_Bmask"]:
                 string += (
                     f"{self._getBufferstr(params['output_buf_add'], params['output_buf_add_offset'])},"

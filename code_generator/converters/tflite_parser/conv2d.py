@@ -2,11 +2,11 @@ import math
 
 import numpy as np
 
-from code_generator.operators import conv2d, depthwiseConv2d
-from code_generator.tflite import Model
-from code_generator.tflite.BuiltinOptions import BuiltinOptions
-from code_generator.tflite.Conv2DOptions import Conv2DOptions
-from code_generator.tflite.DepthwiseConv2DOptions import DepthwiseConv2DOptions
+from common_utils.tinyengine.code_generator.operators import conv2d, depthwiseConv2d
+from common_utils.tinyengine.code_generator.tflite import Model
+from common_utils.tinyengine.code_generator.tflite.BuiltinOptions import BuiltinOptions
+from common_utils.tinyengine.code_generator.tflite.Conv2DOptions import Conv2DOptions
+from common_utils.tinyengine.code_generator.tflite.DepthwiseConv2DOptions import DepthwiseConv2DOptions
 
 from .utils import (
     get_input_tensors,
@@ -18,7 +18,7 @@ from .utils import (
 )
 
 
-def parse_conv2d(op, model: Model.Model, tmpPADIndice=None):
+def parse_conv2d(op, model: Model.Model, tmpPADIndices=None):
     # operator
     op_code_str = getOpCodeStr(op, model)
 
@@ -49,7 +49,8 @@ def parse_conv2d(op, model: Model.Model, tmpPADIndice=None):
     # conv parameters
     stride_h = conv_options.StrideH()
     stride_w = conv_options.StrideW()
-
+    fused_activation_function=conv_options.FusedActivationFunction()
+    assert fused_activation_function==3 or fused_activation_function==0
     # shapes
     _, input_h, input_w, input_c = input_tensor.tensor.ShapeAsNumpy()
     if op_code_str == "CONV_2D":
@@ -86,7 +87,8 @@ def parse_conv2d(op, model: Model.Model, tmpPADIndice=None):
     multiplier, shift = getMultiplierShift(effective_scale)
 
     # find previous layer and redirct the index and fuse pad into conv
-    if tmpPADIndice is not None:
+    if input_tensor.tensor_idx in tmpPADIndices:
+        tmpPADIndice=tmpPADIndices[input_tensor.tensor_idx]
         if tmpPADIndice.output_idx == input_tensor.tensor_idx:
             input_idx = tmpPADIndice.input_idx
             input_h = input_h - math.floor(kernel_h / 2) * 2
@@ -129,6 +131,7 @@ def parse_conv2d(op, model: Model.Model, tmpPADIndice=None):
         # quantized infernece
         "multiplier": multiplier,
         "shift": shift,
+        "act":fused_activation_function,
     }
 
     if op_code_str == "CONV_2D":

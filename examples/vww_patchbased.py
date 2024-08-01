@@ -19,11 +19,11 @@
 import os
 from tempfile import TemporaryDirectory
 
-from code_generator.CodeGenerator import CodeGenerator
-from code_generator.GeneralMemoryScheduler import GeneralMemoryScheduler
-from code_generator.InputResizer import PatchResizer
-from code_generator.PatchBasedUtil import getPatchParams
-from code_generator.TfliteConvertor import TfliteConvertor
+from common_utils.tinyengine.code_generator.CodeGenerator import CodeGenerator
+from common_utils.tinyengine.code_generator.GeneralMemoryScheduler import GeneralMemoryScheduler
+from common_utils.tinyengine.code_generator.InputResizer import PatchResizer
+from common_utils.tinyengine.code_generator.PatchBasedUtil import getPatchParams
+from common_utils.tinyengine.code_generator.TfliteConvertor import TfliteConvertor
 from mcunet.mcunet.model_zoo import download_tflite
 
 # 1: Let's first build our pretrained VWW model

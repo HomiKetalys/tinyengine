@@ -37,7 +37,44 @@ tinyengine_status concat_ch(const q7_t *input1, const uint16_t input_x,
 	return STATE_SUCCESS;
 }
 
+tinyengine_status mconcat2(int size, const int8_t* input1_data,const int8_t* input2_data,int ch1,int ch2,int8_t* output_data) {
+  for (int i = 0; i < size; ++i) {
+      memcpy(output_data, input1_data, ch1);
+      output_data+=ch1;
+      input1_data+=ch1;
+      memcpy(output_data, input2_data, ch2);
+      output_data+=ch2;
+      input2_data+=ch2;
+  }
+}
 
+tinyengine_status mconcat3(int size, const int8_t* input1_data,const int8_t* input2_data,const int8_t* input3_data,int ch1,int ch2,int ch3,int8_t* output_data) {
+  for (int i = 0; i < size; ++i) {
+      memcpy(output_data, input1_data, ch1);
+      output_data+=ch1;
+      input1_data+=ch1;
+      memcpy(output_data, input2_data, ch2);
+      output_data+=ch2;
+      input2_data+=ch2;
+      memcpy(output_data, input3_data, ch3);
+      output_data+=ch3;
+      input3_data+=ch3;
+  }
+}
 
-
-
+tinyengine_status mconcat4(int size, const int8_t* input1_data,const int8_t* input2_data,const int8_t* input3_data,const int8_t* input4_data,int ch1,int ch2,int ch3,int ch4,int8_t* output_data) {
+  for (int i = 0; i < size; ++i) {
+      memcpy(output_data, input1_data, ch1);
+      output_data+=ch1;
+      input1_data+=ch1;
+      memcpy(output_data, input2_data, ch2);
+      output_data+=ch2;
+      input2_data+=ch2;
+      memcpy(output_data, input3_data, ch3);
+      output_data+=ch3;
+      input3_data+=ch3;
+      memcpy(output_data, input4_data, ch4);
+      output_data+=ch4;
+      input4_data+=ch4;
+  }
+}

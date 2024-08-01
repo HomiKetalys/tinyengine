@@ -3,9 +3,9 @@ import math
 
 import numpy as np
 
-from code_generator.tflite import Model
-from code_generator.tflite.BuiltinOperator import BuiltinOperator
-from code_generator.tflite.TensorType import TensorType
+from common_utils.tinyengine.code_generator.tflite import Model
+from common_utils.tinyengine.code_generator.tflite.BuiltinOperator import BuiltinOperator
+from common_utils.tinyengine.code_generator.tflite.TensorType import TensorType
 
 
 class TFLiteTensorWrpper:
@@ -113,6 +113,8 @@ def getLayerMultiplierShift(effective_scale):
 
 
 def getMultiplierShift(effective_scale):
+    if isinstance(effective_scale,np.float64):
+        effective_scale=[effective_scale]
     significand = np.zeros(len(effective_scale), dtype="int32")
     shift = np.zeros(len(effective_scale), dtype="int32")
 

@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <dsp/none.h>
 
 typedef int8_t q7_t;
 typedef uint8_t q8_t;
@@ -176,6 +177,27 @@ tinyengine_status element_mult_nx1(const q7_t *input, const uint16_t input_h, co
                                    const int32_t out_activation_min, const int32_t out_activation_max,
                                    const float output_scale, q7_t *output);
 
+__STATIC_FORCEINLINE q31_t arm_nn_read_q7x4_ia(const q7_t **in_q7)
+{
+    q31_t val;
+    memcpy(&val, *in_q7, 4);
+    *in_q7 += 4;
+
+    return (val);
+};
+
+
+tinyengine_status msigmoid(int size, const int8_t* input_data, const float input_scale, const int32_t input_zero,
+            const float output_scale,const int32_t zero_y, int8_t* output_data);
+tinyengine_status mtanh(int size, const int8_t* input_data, const float input_scale, const int32_t input_zero,
+            const float output_scale,const int32_t zero_y, int8_t* output_data);
+tinyengine_status mquantize(int size, const int8_t* input_data, const float input_scale, const int32_t input_zero,
+            const float output_scale,const int32_t zero_y, int8_t* output_data);
+tinyengine_status mdequantize(int size, const int8_t* input_data, const float input_scale, const int32_t input_zero,
+            float* output_data);
+
+#define convolve_1x1_s8_oddch_fpreq convolve_1x1_s8_fpreq
+
 #include "fp_requantize_op.h"
-#include "genInclude.h"
+//#include "genInclude.h"
 //#include "int8_bp_op.h"

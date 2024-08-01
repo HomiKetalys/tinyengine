@@ -27,14 +27,21 @@ from .TfliteConvertor import TfliteConvertor
 def GenerateSourceFilesFromTFlite(
     tflite_path,
     life_cycle_path=None,
+    codegen_root="./codegen",
+    model_name="network",
 ):
-    use_inplace = True
+    use_inplace = False
+    os.makedirs(codegen_root,exist_ok=True)
+    os.makedirs(os.path.split(life_cycle_path)[0],exist_ok=True)
 
     with TemporaryDirectory() as WORKING_DIR:
         if life_cycle_path is None:
             schedule_image_path = os.path.join(WORKING_DIR, "schedule.png")
         else:
             schedule_image_path = life_cycle_path
+
+
+
 
         tf_convertor = TfliteConvertor(tflite_path)
         tf_convertor.parseOperatorInfo()
@@ -65,6 +72,8 @@ def GenerateSourceFilesFromTFlite(
             tflite_op=False,
             dummy_address=False,
             outputTables=outTable,
+            codegen_root=codegen_root,
+            model_name=model_name,
         )
         # set detection outputs before codegen if any
         code_generator.codeGeneration()

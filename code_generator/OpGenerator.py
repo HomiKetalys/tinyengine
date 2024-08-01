@@ -22,11 +22,12 @@ from .codetemplate.depthwiseTemplate_mask import depthwiseInplace_mask
 
 
 class OpGenerator:
-    def __init__(self, incpath, srcpath, layers, fp_requantize=False):
+    def __init__(self, incpath, srcpath, layers, fp_requantize=False,model_name="network"):
         self.incpath = incpath
         self.srcpath = srcpath
         self.layers = layers
         self.fp_requantize = fp_requantize
+        self.model_name=model_name
 
     def genOpcode(self):
         # find all conv ops
@@ -39,7 +40,7 @@ class OpGenerator:
                     op_list.append(op)
 
         # go through and generate all ops
-        incfile = includeFile(self.incpath)
+        incfile = includeFile(self.incpath,model_name=self.model_name)
         for op in op_list:
             if op.isDepthwise:
                 if op.kernel_h > op.kernel_w:
@@ -50,18 +51,18 @@ class OpGenerator:
                     depthwise_template = depthwiseInplace(
                         op.kernel_h, op.kernel_w, op.pad_h, op.pad_w, op.stride, "CHW", self.fp_requantize
                     )
-                    depthwise_template_mask = depthwiseInplace_mask(
-                        op.kernel_h, op.kernel_w, op.pad_h, op.pad_w, op.stride, "CHW", self.fp_requantize
-                    )
-                    depthwise_template_bitmask = depthwiseInplace_bitmask(
-                        op.kernel_h, op.kernel_w, op.pad_h, op.pad_w, op.stride, "CHW", self.fp_requantize
-                    )
+                    # depthwise_template_mask = depthwiseInplace_mask(
+                    #     op.kernel_h, op.kernel_w, op.pad_h, op.pad_w, op.stride, "CHW", self.fp_requantize
+                    # )
+                    # depthwise_template_bitmask = depthwiseInplace_bitmask(
+                    #     op.kernel_h, op.kernel_w, op.pad_h, op.pad_w, op.stride, "CHW", self.fp_requantize
+                    # )
                 depthwise_template.genFile(self.srcpath)
                 incfile.addDefine(depthwise_template.genFuncDefine())
-                depthwise_template_mask.genFile(self.srcpath)
-                incfile.addDefine(depthwise_template_mask.genFuncDefine())
-                depthwise_template_bitmask.genFile(self.srcpath)
-                incfile.addDefine(depthwise_template_bitmask.genFuncDefine())
+                # depthwise_template_mask.genFile(self.srcpath)
+                # incfile.addDefine(depthwise_template_mask.genFuncDefine())
+                # depthwise_template_bitmask.genFile(self.srcpath)
+                # incfile.addDefine(depthwise_template_bitmask.genFuncDefine())
 
         incfile.writeFile()
 
@@ -102,9 +103,10 @@ class convOp:
 
 
 class includeFile:
-    def __init__(self, path):
+    def __init__(self, path,model_name):
         self.path = path
         self.defstring = ""
+        self.name=model_name
 
     def addDefine(self, defstr):
         self.defstring += defstr + ";\n"
@@ -112,7 +114,7 @@ class includeFile:
     def writeFile(self):
         import os
 
-        outpath = os.path.join(self.path, "genInclude.h")
+        outpath = os.path.join(self.path, f"gen_{self.name}_Include.h")
         outf = open(outpath, "w")
         outf.write(self.defstring)
         outf.close()

@@ -1,7 +1,7 @@
 import numpy as np
 
-from code_generator.operators import conv2d
-from code_generator.tflite import Model
+from common_utils.tinyengine.code_generator.operators import conv2d
+from common_utils.tinyengine.code_generator.tflite import Model
 
 from .utils import (
     get_input_tensors,

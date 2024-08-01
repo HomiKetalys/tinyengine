@@ -1,5 +1,5 @@
-from code_generator.operators import avgpool2d
-from code_generator.tflite import Model
+from common_utils.tinyengine.code_generator.operators import avgpool2d
+from common_utils.tinyengine.code_generator.tflite import Model
 
 from .utils import get_hwc_from_chwshape, get_input_tensors, get_output_tensors, getTensorTypeStr
 

@@ -22,7 +22,7 @@ import numpy
 from matplotlib.ticker import MaxNLocator
 from tqdm import tqdm
 
-from code_generator.constant import (
+from ..constant import (
     FIGURE_CONFIG,
     TTYPE_INFERNECE,
     TTYPE_STATIC_WEIGHT,

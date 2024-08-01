@@ -26,7 +26,7 @@ tinyengine_status add_fpreq(int size, const int8_t* input1_data, const float inp
   for (int i = 0; i < size; ++i) {
 	  float input1_fp = ((float)*input1_data++ - input1_zero) * input1_scale;
 	  float input2_fp = ((float)*input2_data++ - input2_zero) * input2_scale;
-      int clamped_output = (int)round((input1_fp + input2_fp) / output_scale + zero_y); // to align with tvm implementation
+      int clamped_output = (int)roundf((input1_fp + input2_fp) / output_scale + zero_y); // to align with tvm implementation
       clamped_output = TN_MAX(clamped_output, -128);
       clamped_output = TN_MIN(clamped_output, 127);
       output_data[i] = (int8_t)(clamped_output);

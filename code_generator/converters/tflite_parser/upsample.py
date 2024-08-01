@@ -1,5 +1,5 @@
-from code_generator.operators import upsample
-from code_generator.tflite import Model
+from common_utils.tinyengine.code_generator.operators import upsample
+from common_utils.tinyengine.code_generator.tflite import Model
 
 from .utils import get_input_tensors, get_nhwc_from_shape, get_output_tensors
 

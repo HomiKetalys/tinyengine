@@ -16,11 +16,11 @@
 # Target ISA:  ARMv7E-M
 # ----------------------------------------------------------------------
 
-from code_generator.CodeGenerator import CodeGenerator
-from code_generator.detection_utils import detectionUtils
-from code_generator.GeneralMemoryScheduler import GeneralMemoryScheduler
-from code_generator.InputResizer import InputResizer
-from code_generator.TfliteConvertor import TfliteConvertor
+from common_utils.tinyengine.code_generator.CodeGenerator import CodeGenerator
+from common_utils.tinyengine.code_generator.detection_utils import detectionUtils
+from common_utils.tinyengine.code_generator.GeneralMemoryScheduler import GeneralMemoryScheduler
+from common_utils.tinyengine.code_generator.InputResizer import InputResizer
+from common_utils.tinyengine.code_generator.TfliteConvertor import TfliteConvertor
 
 tflite_path = "./assets/detection.tflite"
 life_cycle_path = "./lifecycle.png"

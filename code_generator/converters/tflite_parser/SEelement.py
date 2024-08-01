@@ -1,7 +1,7 @@
 import numpy as np
 
-from code_generator.operators import se_element_mult
-from code_generator.tflite import Model
+from common_utils.tinyengine.code_generator.operators import se_element_mult
+from common_utils.tinyengine.code_generator.tflite import Model
 
 from .utils import get_input_tensors, get_output_tensors, getLayerMultiplierShift
 

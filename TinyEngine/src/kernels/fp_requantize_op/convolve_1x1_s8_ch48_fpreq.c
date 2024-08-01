@@ -109,7 +109,7 @@ tinyengine_status convolve_1x1_s8_ch48_fpreq(const q7_t *input,
 				col_count--;
 			}
 
-			sum = (float) sum * scales[i_ch_out];
+			sum = roundf((float) sum * scales[i_ch_out]);
 			sum += out_offset;
 			sum = MAX(sum, out_activation_min);
 			sum = MIN(sum, out_activation_max);

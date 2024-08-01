@@ -24,6 +24,13 @@
 #include <math.h>
 #include <float.h>
 
+typedef int8_t q7_t;
+typedef uint8_t q8_t;
+typedef int16_t q15_t;
+typedef uint16_t q16_t;
+typedef int32_t q31_t;
+typedef uint32_t q32_t;
+
 typedef enum {
 	STATE_SUCCESS_fp = 0, /* No error */
 	PARAM_NO_SUPPORT_fp = 1, /* Unsupported parameters */

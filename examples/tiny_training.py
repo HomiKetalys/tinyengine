@@ -24,9 +24,9 @@
 import argparse
 import json
 
-from code_generator.CodeGenerator import CodeGenerator
-from code_generator.GeneralMemoryScheduler import GeneralMemoryScheduler
-from code_generator.TTEParser import TTEParser
+from common_utils.tinyengine.code_generator.CodeGenerator import CodeGenerator
+from common_utils.tinyengine.code_generator.GeneralMemoryScheduler import GeneralMemoryScheduler
+from common_utils.tinyengine.code_generator.TTEParser import TTEParser
 
 
 def main():

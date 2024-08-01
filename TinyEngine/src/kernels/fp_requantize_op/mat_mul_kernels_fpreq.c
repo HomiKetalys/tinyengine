@@ -291,25 +291,25 @@ q7_t* mat_mult_kernel_s8_s16_reordered_ch48_fpreq(const q7_t *input_a,
 		ch_1_out_0 = __SMLAD(a12, b0, ch_1_out_0);
 		ch_1_out_1 = __SMLAD(a12, b1, ch_1_out_1);
 
-		ch_0_out_0 = (q31_t) ((float) ch_0_out_0 * scale_0);
+		ch_0_out_0 = (q31_t) roundf((float) ch_0_out_0 * scale_0);
 		ch_0_out_0 += out_offset;
 		ch_0_out_0 = MAX(ch_0_out_0, activation_min);
 		ch_0_out_0 = MIN(ch_0_out_0, activation_max);
 		*out_0++ = (q7_t) ch_0_out_0;
 
-		ch_0_out_1 = (q31_t) ((float) ch_0_out_1 * scale_0);
+		ch_0_out_1 = (q31_t) roundf((float) ch_0_out_1 * scale_0);
 		ch_0_out_1 += out_offset;
 		ch_0_out_1 = MAX(ch_0_out_1, activation_min);
 		ch_0_out_1 = MIN(ch_0_out_1, activation_max);
 		*out_1++ = (q7_t) ch_0_out_1;
 
-		ch_1_out_0 = (q31_t) ((float) ch_1_out_0 * scale_1);
+		ch_1_out_0 = (q31_t) roundf((float) ch_1_out_0 * scale_1);
 		ch_1_out_0 += out_offset;
 		ch_1_out_0 = MAX(ch_1_out_0, activation_min);
 		ch_1_out_0 = MIN(ch_1_out_0, activation_max);
 		*out_0++ = (q7_t) ch_1_out_0;
 
-		ch_1_out_1 = (q31_t) ((float) ch_1_out_1 * scale_1);
+		ch_1_out_1 = (q31_t) roundf((float) ch_1_out_1 * scale_1);
 		ch_1_out_1 += out_offset;
 		ch_1_out_1 = MAX(ch_1_out_1, activation_min);
 		ch_1_out_1 = MIN(ch_1_out_1, activation_max);
@@ -438,25 +438,25 @@ q7_t* mat_mult_kernel_s8_s16_reordered_ch16_fpreq(const q7_t *input_a,
 		ch_1_out_0 = __SMLAD(a12, b0, ch_1_out_0);
 		ch_1_out_1 = __SMLAD(a12, b1, ch_1_out_1);
 
-		ch_0_out_0 = (q31_t) ((float) ch_0_out_0 * scale_0);
+		ch_0_out_0 = (q31_t) roundf((float) ch_0_out_0 * scale_0);
 		ch_0_out_0 += out_offset;
 		ch_0_out_0 = MAX(ch_0_out_0, activation_min);
 		ch_0_out_0 = MIN(ch_0_out_0, activation_max);
 		*out_0++ = (q7_t) ch_0_out_0;
 
-		ch_0_out_1 = (q31_t) ((float) ch_0_out_1 * scale_0);
+		ch_0_out_1 = (q31_t) roundf((float) ch_0_out_1 * scale_0);
 		ch_0_out_1 += out_offset;
 		ch_0_out_1 = MAX(ch_0_out_1, activation_min);
 		ch_0_out_1 = MIN(ch_0_out_1, activation_max);
 		*out_1++ = (q7_t) ch_0_out_1;
 
-		ch_1_out_0 = (q31_t) ((float) ch_1_out_0 * scale_1);
+		ch_1_out_0 = (q31_t) roundf((float) ch_1_out_0 * scale_1);
 		ch_1_out_0 += out_offset;
 		ch_1_out_0 = MAX(ch_1_out_0, activation_min);
 		ch_1_out_0 = MIN(ch_1_out_0, activation_max);
 		*out_0++ = (q7_t) ch_1_out_0;
 
-		ch_1_out_1 = (q31_t) ((float) ch_1_out_1 * scale_1);
+		ch_1_out_1 = (q31_t) roundf((float) ch_1_out_1 * scale_1);
 		ch_1_out_1 += out_offset;
 		ch_1_out_1 = MAX(ch_1_out_1, activation_min);
 		ch_1_out_1 = MIN(ch_1_out_1, activation_max);
@@ -546,25 +546,25 @@ q7_t* mat_mult_kernel_s8_s16_reordered_ch8_fpreq(const q7_t *input_a,
 		b0 = arm_nn_read_q15x2_ia(&ip_b0);
 		ch_1_out_1 = __SMLAD(a12, b1, ch_1_out_1);
 
-		ch_0_out_0 = (q31_t) ((float) ch_0_out_0 * scale_0);
+		ch_0_out_0 = (q31_t) roundf((float) ch_0_out_0 * scale_0);
 		ch_0_out_0 += out_offset;
 		ch_0_out_0 = MAX(ch_0_out_0, activation_min);
 		ch_0_out_0 = MIN(ch_0_out_0, activation_max);
 		*out_0++ = (q7_t) ch_0_out_0;
 
-		ch_0_out_1 = (q31_t) ((float) ch_0_out_1 * scale_0);
+		ch_0_out_1 = (q31_t) roundf((float) ch_0_out_1 * scale_0);
 		ch_0_out_1 += out_offset;
 		ch_0_out_1 = MAX(ch_0_out_1, activation_min);
 		ch_0_out_1 = MIN(ch_0_out_1, activation_max);
 		*out_1++ = (q7_t) ch_0_out_1;
 
-		ch_1_out_0 = (q31_t) ((float) ch_1_out_0 * scale_1);
+		ch_1_out_0 = (q31_t) roundf((float) ch_1_out_0 * scale_1);
 		ch_1_out_0 += out_offset;
 		ch_1_out_0 = MAX(ch_1_out_0, activation_min);
 		ch_1_out_0 = MIN(ch_1_out_0, activation_max);
 		*out_0++ = (q7_t) ch_1_out_0;
 
-		ch_1_out_1 = (q31_t) ((float) ch_1_out_1 * scale_1);
+		ch_1_out_1 = (q31_t) roundf((float) ch_1_out_1 * scale_1);
 		ch_1_out_1 += out_offset;
 		ch_1_out_1 = MAX(ch_1_out_1, activation_min);
 		ch_1_out_1 = MIN(ch_1_out_1, activation_max);
@@ -734,25 +734,25 @@ q7_t* mat_mult_kernel_s8_s16_reordered_ch24_fpreq(const q7_t *input_a,
 		b0 = arm_nn_read_q15x2_ia(&ip_b0);
 		ch_1_out_1 = __SMLAD(a12, b1, ch_1_out_1);
 
-		ch_0_out_0 = (q31_t) ((float) ch_0_out_0 * scale_0);
+		ch_0_out_0 = (q31_t) roundf((float) ch_0_out_0 * scale_0);
 		ch_0_out_0 += out_offset;
 		ch_0_out_0 = MAX(ch_0_out_0, activation_min);
 		ch_0_out_0 = MIN(ch_0_out_0, activation_max);
 		*out_0++ = (q7_t) ch_0_out_0;
 
-		ch_0_out_1 = (q31_t) ((float) ch_0_out_1 * scale_0);
+		ch_0_out_1 = (q31_t) roundf((float) ch_0_out_1 * scale_0);
 		ch_0_out_1 += out_offset;
 		ch_0_out_1 = MAX(ch_0_out_1, activation_min);
 		ch_0_out_1 = MIN(ch_0_out_1, activation_max);
 		*out_1++ = (q7_t) ch_0_out_1;
 
-		ch_1_out_0 = (q31_t) ((float) ch_1_out_0 * scale_1);
+		ch_1_out_0 = (q31_t) roundf((float) ch_1_out_0 * scale_1);
 		ch_1_out_0 += out_offset;
 		ch_1_out_0 = MAX(ch_1_out_0, activation_min);
 		ch_1_out_0 = MIN(ch_1_out_0, activation_max);
 		*out_0++ = (q7_t) ch_1_out_0;
 
-		ch_1_out_1 = (q31_t) ((float) ch_1_out_1 * scale_1);
+		ch_1_out_1 = (q31_t) roundf((float) ch_1_out_1 * scale_1);
 		ch_1_out_1 += out_offset;
 		ch_1_out_1 = MAX(ch_1_out_1, activation_min);
 		ch_1_out_1 = MIN(ch_1_out_1, activation_max);
@@ -824,25 +824,25 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq(const q7_t *input_a,
 			col_count--;
 		} /* while over col_count */
 
-		ch_0_out_0 = (q31_t) ((float) ch_0_out_0 * scale_0);
+		ch_0_out_0 = (q31_t) roundf((float) ch_0_out_0 * scale_0);
 		ch_0_out_0 += out_offset;
 		ch_0_out_0 = MAX(ch_0_out_0, activation_min);
 		ch_0_out_0 = MIN(ch_0_out_0, activation_max);
 		*out_0++ = (q7_t) ch_0_out_0;
 
-		ch_0_out_1 = (q31_t) ((float) ch_0_out_1 * scale_0);
+		ch_0_out_1 = (q31_t) roundf((float) ch_0_out_1 * scale_0);
 		ch_0_out_1 += out_offset;
 		ch_0_out_1 = MAX(ch_0_out_1, activation_min);
 		ch_0_out_1 = MIN(ch_0_out_1, activation_max);
 		*out_1++ = (q7_t) ch_0_out_1;
 
-		ch_1_out_0 = (q31_t) ((float) ch_1_out_0 * scale_1);
+		ch_1_out_0 = (q31_t) roundf((float) ch_1_out_0 * scale_1);
 		ch_1_out_0 += out_offset;
 		ch_1_out_0 = MAX(ch_1_out_0, activation_min);
 		ch_1_out_0 = MIN(ch_1_out_0, activation_max);
 		*out_0++ = (q7_t) ch_1_out_0;
 
-		ch_1_out_1 = (q31_t) ((float) ch_1_out_1 * scale_1);
+		ch_1_out_1 = (q31_t) roundf((float) ch_1_out_1 * scale_1);
 		ch_1_out_1 += out_offset;
 		ch_1_out_1 = MAX(ch_1_out_1, activation_min);
 		ch_1_out_1 = MIN(ch_1_out_1, activation_max);
@@ -883,13 +883,13 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq(const q7_t *input_a,
 			col_count--;
 		} /* while over col_count */
 
-		ch_0_out_0 = (q31_t) ((float) ch_0_out_0 * *scales);
+		ch_0_out_0 = (q31_t) roundf((float) ch_0_out_0 * *scales);
 		ch_0_out_0 += out_offset;
 		ch_0_out_0 = MAX(ch_0_out_0, activation_min);
 		ch_0_out_0 = MIN(ch_0_out_0, activation_max);
 		*out_0++ = (q7_t) ch_0_out_0;
 
-		ch_0_out_1 = (q31_t) ((float) ch_0_out_1 * *scales);
+		ch_0_out_1 = (q31_t) roundf((float) ch_0_out_1 * *scales);
 		ch_0_out_1 += out_offset;
 		ch_0_out_1 = MAX(ch_0_out_1, activation_min);
 		ch_0_out_1 = MIN(ch_0_out_1, activation_max);
@@ -958,7 +958,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_bitmask(const q7_t *input_a,
 			col_count--;
 		} /* while over col_count */
 
-		ch_0_out_0 = (q31_t) ((float) ch_0_out_0 * scale_0);
+		ch_0_out_0 = (q31_t) roundf((float) ch_0_out_0 * scale_0);
 		ch_0_out_0 += out_offset;
 		q7_t mask_value = 1;
 		if (ch_0_out_0 < activation_min){
@@ -976,7 +976,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_bitmask(const q7_t *input_a,
 		*out_0++ = (q7_t) ch_0_out_0;
 
 
-		ch_0_out_1 = (q31_t) ((float) ch_0_out_1 * scale_0);
+		ch_0_out_1 = (q31_t) roundf((float) ch_0_out_1 * scale_0);
 		ch_0_out_1 += out_offset;
 		mask_value = 1;
 		if (ch_0_out_1 < activation_min){
@@ -993,7 +993,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_bitmask(const q7_t *input_a,
 			BIT_CLEAR(*mask1, bit_starting_idx);
 		*out_1++ = (q7_t) ch_0_out_1;
 
-		ch_1_out_0 = (q31_t) ((float) ch_1_out_0 * scale_1);
+		ch_1_out_0 = (q31_t) roundf((float) ch_1_out_0 * scale_1);
 		ch_1_out_0 += out_offset;
 		mask_value = 1;
 		if (ch_1_out_0 < activation_min){
@@ -1010,7 +1010,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_bitmask(const q7_t *input_a,
 			BIT_CLEAR(*mask, bit_starting_idx+1);
 		*out_0++ = (q7_t) ch_1_out_0;
 
-		ch_1_out_1 = (q31_t) ((float) ch_1_out_1 * scale_1);
+		ch_1_out_1 = (q31_t) roundf((float) ch_1_out_1 * scale_1);
 		ch_1_out_1 += out_offset;
 		mask_value = 1;
 		if (ch_1_out_1 < activation_min){
@@ -1101,7 +1101,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_mask(const q7_t *input_a,
 			col_count--;
 		} /* while over col_count */
 
-		ch_0_out_0 = (q31_t) ((float) ch_0_out_0 * scale_0);
+		ch_0_out_0 = (q31_t) roundf((float) ch_0_out_0 * scale_0);
 		ch_0_out_0 += out_offset;
 		q7_t mask_value = 1;
 		if (ch_0_out_0 < activation_min){
@@ -1116,7 +1116,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_mask(const q7_t *input_a,
 		*out_0++ = (q7_t) ch_0_out_0;
 
 
-		ch_0_out_1 = (q31_t) ((float) ch_0_out_1 * scale_0);
+		ch_0_out_1 = (q31_t) roundf((float) ch_0_out_1 * scale_0);
 		ch_0_out_1 += out_offset;
 		mask_value = 1;
 		if (ch_0_out_1 < activation_min){
@@ -1130,7 +1130,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_mask(const q7_t *input_a,
 		*mask1++ = (q7_t) mask_value;
 		*out_1++ = (q7_t) ch_0_out_1;
 
-		ch_1_out_0 = (q31_t) ((float) ch_1_out_0 * scale_1);
+		ch_1_out_0 = (q31_t) roundf((float) ch_1_out_0 * scale_1);
 		ch_1_out_0 += out_offset;
 		mask_value = 1;
 		if (ch_1_out_0 < activation_min){
@@ -1144,7 +1144,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_mask(const q7_t *input_a,
 		*mask++ = (q7_t) mask_value;
 		*out_0++ = (q7_t) ch_1_out_0;
 
-		ch_1_out_1 = (q31_t) ((float) ch_1_out_1 * scale_1);
+		ch_1_out_1 = (q31_t) roundf((float) ch_1_out_1 * scale_1);
 		ch_1_out_1 += out_offset;
 		mask_value = 1;
 		if (ch_1_out_1 < activation_min){
@@ -1259,7 +1259,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_mask_partialCH(const q7_t *kernel_s
 			col_count--;
 		} /* while over col_count */
 
-		ch_0_out_0 = (q31_t) ((float) ch_0_out_0 * scale_0);
+		ch_0_out_0 = (q31_t) roundf((float) ch_0_out_0 * scale_0);
 		ch_0_out_0 += out_offset;
 		q7_t mask_value = 1;
 		if (ch_0_out_0 < activation_min){
@@ -1274,7 +1274,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_mask_partialCH(const q7_t *kernel_s
 		*out_0++ = (q7_t) ch_0_out_0;
 
 
-		ch_0_out_1 = (q31_t) ((float) ch_0_out_1 * scale_0);
+		ch_0_out_1 = (q31_t) roundf((float) ch_0_out_1 * scale_0);
 		ch_0_out_1 += out_offset;
 		mask_value = 1;
 		if (ch_0_out_1 < activation_min){
@@ -1288,7 +1288,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_mask_partialCH(const q7_t *kernel_s
 		*mask1++ = (q7_t) mask_value;
 		*out_1++ = (q7_t) ch_0_out_1;
 
-		ch_1_out_0 = (q31_t) ((float) ch_1_out_0 * scale_1);
+		ch_1_out_0 = (q31_t) roundf((float) ch_1_out_0 * scale_1);
 		ch_1_out_0 += out_offset;
 		mask_value = 1;
 		if (ch_1_out_0 < activation_min){
@@ -1302,7 +1302,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_mask_partialCH(const q7_t *kernel_s
 		*mask++ = (q7_t) mask_value;
 		*out_0++ = (q7_t) ch_1_out_0;
 
-		ch_1_out_1 = (q31_t) ((float) ch_1_out_1 * scale_1);
+		ch_1_out_1 = (q31_t) roundf((float) ch_1_out_1 * scale_1);
 		ch_1_out_1 += out_offset;
 		mask_value = 1;
 		if (ch_1_out_1 < activation_min){
@@ -1419,7 +1419,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_bitmask_partialCH(const q7_t *kerne
 			col_count--;
 		} /* while over col_count */
 
-		ch_0_out_0 = (q31_t) ((float) ch_0_out_0 * scale_0);
+		ch_0_out_0 = (q31_t) roundf((float) ch_0_out_0 * scale_0);
 		ch_0_out_0 += out_offset;
 		q7_t mask_value = 1;
 		if (ch_0_out_0 < activation_min){
@@ -1437,7 +1437,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_bitmask_partialCH(const q7_t *kerne
 		*out_0++ = (q7_t) ch_0_out_0;
 
 
-		ch_0_out_1 = (q31_t) ((float) ch_0_out_1 * scale_0);
+		ch_0_out_1 = (q31_t) roundf((float) ch_0_out_1 * scale_0);
 		ch_0_out_1 += out_offset;
 		mask_value = 1;
 		if (ch_0_out_1 < activation_min){
@@ -1455,7 +1455,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_bitmask_partialCH(const q7_t *kerne
 		*out_1++ = (q7_t) ch_0_out_1;
 
 
-		ch_1_out_0 = (q31_t) ((float) ch_1_out_0 * scale_1);
+		ch_1_out_0 = (q31_t) roundf((float) ch_1_out_0 * scale_1);
 		ch_1_out_0 += out_offset;
 		mask_value = 1;
 		if (ch_1_out_0 < activation_min){
@@ -1472,7 +1472,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_bitmask_partialCH(const q7_t *kerne
 			BIT_CLEAR(*mask, bit_starting_idx+1);
 		*out_0++ = (q7_t) ch_1_out_0;
 
-		ch_1_out_1 = (q31_t) ((float) ch_1_out_1 * scale_1);
+		ch_1_out_1 = (q31_t) roundf((float) ch_1_out_1 * scale_1);
 		ch_1_out_1 += out_offset;
 		mask_value = 1;
 		if (ch_1_out_1 < activation_min){
@@ -1590,7 +1590,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_mask_partialCH_Multiple2(const q7_t
 		} /* while over col_count */
 
 
-		ch_0_out_0 = (q31_t) ((float) ch_0_out_0 * scale_0);
+		ch_0_out_0 = (q31_t) roundf((float) ch_0_out_0 * scale_0);
 		ch_0_out_0 += out_offset;
 		q7_t mask_value = 1;
 		if (ch_0_out_0 < activation_min){
@@ -1605,7 +1605,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_mask_partialCH_Multiple2(const q7_t
 		*out_0++ = (q7_t) ch_0_out_0;
 
 
-		ch_0_out_1 = (q31_t) ((float) ch_0_out_1 * scale_0);
+		ch_0_out_1 = (q31_t) roundf((float) ch_0_out_1 * scale_0);
 		ch_0_out_1 += out_offset;
 		mask_value = 1;
 		if (ch_0_out_1 < activation_min){
@@ -1619,7 +1619,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_mask_partialCH_Multiple2(const q7_t
 		*mask1++ = (q7_t) mask_value;
 		*out_1++ = (q7_t) ch_0_out_1;
 
-		ch_1_out_0 = (q31_t) ((float) ch_1_out_0 * scale_1);
+		ch_1_out_0 = (q31_t) roundf((float) ch_1_out_0 * scale_1);
 		ch_1_out_0 += out_offset;
 		mask_value = 1;
 		if (ch_1_out_0 < activation_min){
@@ -1633,7 +1633,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_mask_partialCH_Multiple2(const q7_t
 		*mask++ = (q7_t) mask_value;
 		*out_0++ = (q7_t) ch_1_out_0;
 
-		ch_1_out_1 = (q31_t) ((float) ch_1_out_1 * scale_1);
+		ch_1_out_1 = (q31_t) roundf((float) ch_1_out_1 * scale_1);
 		ch_1_out_1 += out_offset;
 		mask_value = 1;
 		if (ch_1_out_1 < activation_min){
@@ -1741,7 +1741,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_bitmask_partialCH_Multiple2(const q
 		} /* while over col_count */
 
 
-		ch_0_out_0 = (q31_t) ((float) ch_0_out_0 * scale_0);
+		ch_0_out_0 = (q31_t) roundf((float) ch_0_out_0 * scale_0);
 		ch_0_out_0 += out_offset;
 		q7_t mask_value = 1;
 		if (ch_0_out_0 < activation_min){
@@ -1760,7 +1760,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_bitmask_partialCH_Multiple2(const q
 
 
 
-		ch_0_out_1 = (q31_t) ((float) ch_0_out_1 * scale_0);
+		ch_0_out_1 = (q31_t) roundf((float) ch_0_out_1 * scale_0);
 		ch_0_out_1 += out_offset;
 		mask_value = 1;
 		if (ch_0_out_1 < activation_min){
@@ -1777,7 +1777,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_bitmask_partialCH_Multiple2(const q
 			BIT_CLEAR(*mask1, bit_starting_idx);
 		*out_1++ = (q7_t) ch_0_out_1;
 
-		ch_1_out_0 = (q31_t) ((float) ch_1_out_0 * scale_1);
+		ch_1_out_0 = (q31_t) roundf((float) ch_1_out_0 * scale_1);
 		ch_1_out_0 += out_offset;
 		mask_value = 1;
 		if (ch_1_out_0 < activation_min){
@@ -1794,7 +1794,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq_bitmask_partialCH_Multiple2(const q
 			BIT_CLEAR(*mask, bit_starting_idx+1);
 		*out_0++ = (q7_t) ch_1_out_0;
 
-		ch_1_out_1 = (q31_t) ((float) ch_1_out_1 * scale_1);
+		ch_1_out_1 = (q31_t) roundf((float) ch_1_out_1 * scale_1);
 		ch_1_out_1 += out_offset;
 		mask_value = 1;
 		if (ch_1_out_1 < activation_min){
@@ -1979,25 +1979,25 @@ q7_t* mat_mult_kernel3_input3_s8_s16_fpreq(const q7_t *input_a,
 		ch_1_out_0 += ksrc2[26] * _b0;
 		ch_1_out_1 += ksrc2[26] * _b1;
 
-		ch_0_out_0 = (q31_t) ((float) ch_0_out_0 * scale_0);
+		ch_0_out_0 = (q31_t) roundf((float) ch_0_out_0 * scale_0);
 		ch_0_out_0 += out_offset;
 		ch_0_out_0 = MAX(ch_0_out_0, activation_min);
 		ch_0_out_0 = MIN(ch_0_out_0, activation_max);
 		*out_0++ = (q7_t) ch_0_out_0;
 
-		ch_0_out_1 = (q31_t) ((float) ch_0_out_1 * scale_0);
+		ch_0_out_1 = (q31_t) roundf((float) ch_0_out_1 * scale_0);
 		ch_0_out_1 += out_offset;
 		ch_0_out_1 = MAX(ch_0_out_1, activation_min);
 		ch_0_out_1 = MIN(ch_0_out_1, activation_max);
 		*out_1++ = (q7_t) ch_0_out_1;
 
-		ch_1_out_0 = (q31_t) ((float) ch_1_out_0 * scale_1);
+		ch_1_out_0 = (q31_t) roundf((float) ch_1_out_0 * scale_1);
 		ch_1_out_0 += out_offset;
 		ch_1_out_0 = MAX(ch_1_out_0, activation_min);
 		ch_1_out_0 = MIN(ch_1_out_0, activation_max);
 		*out_0++ = (q7_t) ch_1_out_0;
 
-		ch_1_out_1 = (q31_t) ((float) ch_1_out_1 * scale_1);
+		ch_1_out_1 = (q31_t) roundf((float) ch_1_out_1 * scale_1);
 		ch_1_out_1 += out_offset;
 		ch_1_out_1 = MAX(ch_1_out_1, activation_min);
 		ch_1_out_1 = MIN(ch_1_out_1, activation_max);

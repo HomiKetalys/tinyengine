@@ -336,6 +336,9 @@ class GeneralMemoryScheduler:
                 elif cnt == 2:
                     op.params["input3_buf_add_offset"] = self.allocator.getIdxAddress(t.allocator_idx)
                     op.params["input3_buf_add"] = "front"
+                elif cnt == 3:
+                    op.params["input4_buf_add_offset"] = self.allocator.getIdxAddress(t.allocator_idx)
+                    op.params["input4_buf_add"] = "front"
                 op.input_tensors[cnt].buffer_name = "buffer0"
                 op.input_tensors[cnt].buffer_address = self.allocator.getIdxAddress(t.allocator_idx)
             for cnt, t in enumerate(op.output_tensors):

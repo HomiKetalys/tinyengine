@@ -19,11 +19,11 @@
 import os
 from tempfile import TemporaryDirectory
 
-from code_generator.CodeGenerator import CodeGenerator
-from code_generator.GeneralMemoryScheduler import GeneralMemoryScheduler
-from code_generator.InputResizer import PatchResizer
-from code_generator.PatchBasedUtil import getPatchParams
-from code_generator.TfliteConvertor import TfliteConvertor
+from common_utils.tinyengine.code_generator.CodeGenerator import CodeGenerator
+from common_utils.tinyengine.code_generator.GeneralMemoryScheduler import GeneralMemoryScheduler
+from common_utils.tinyengine.code_generator.InputResizer import PatchResizer
+from common_utils.tinyengine.code_generator.PatchBasedUtil import getPatchParams
+from common_utils.tinyengine.code_generator.TfliteConvertor import TfliteConvertor
 
 # 1: The model with SE blocks for testing purpose
 tflite_path = "/home/wmchen/workspace/mcunet/tinyengine/assets/mcunetv2_large.tflite"

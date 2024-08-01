@@ -1,8 +1,8 @@
-from code_generator.operators import avgpool2d
-from code_generator.tflite import Model
-from code_generator.tflite.BuiltinOptions import BuiltinOptions
-from code_generator.tflite.Padding import Padding
-from code_generator.tflite.Pool2DOptions import Pool2DOptions
+from common_utils.tinyengine.code_generator.operators import avgpool2d
+from common_utils.tinyengine.code_generator.tflite import Model
+from common_utils.tinyengine.code_generator.tflite.BuiltinOptions import BuiltinOptions
+from common_utils.tinyengine.code_generator.tflite.Padding import Padding
+from common_utils.tinyengine.code_generator.tflite.Pool2DOptions import Pool2DOptions
 
 from .utils import get_input_tensors, get_output_tensors, getOpCodeStr, getTensorTypeStr
 

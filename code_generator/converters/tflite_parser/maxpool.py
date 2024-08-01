@@ -1,9 +1,9 @@
-from code_generator.operators import maxpool2d
-from code_generator.tflite import Model
-from code_generator.tflite.BuiltinOptions import BuiltinOptions
-from code_generator.tflite.Pool2DOptions import Pool2DOptions
+from common_utils.tinyengine.code_generator.operators import maxpool2d
+from common_utils.tinyengine.code_generator.tflite import Model
+from common_utils.tinyengine.code_generator.tflite.BuiltinOptions import BuiltinOptions
+from common_utils.tinyengine.code_generator.tflite.Pool2DOptions import Pool2DOptions
 
-from .utils import get_input_tensors, get_output_tensors
+from .utils import get_input_tensors, get_output_tensors, getTensorTypeStr
 
 
 def parse_maxpool(op, model: Model.Model):
@@ -38,6 +38,9 @@ def parse_maxpool(op, model: Model.Model):
     stride_w = pool2d_options.StrideW()
     filter_h = pool2d_options.FilterHeight()
     filter_w = pool2d_options.FilterWidth()
+    input_type = getTensorTypeStr(input_tensor.tensor.Type())
+    if input_type != "float32":
+        input_zero_point = input_tensor.qnn_params["zero_point"]
 
     pool_params = {
         # operator

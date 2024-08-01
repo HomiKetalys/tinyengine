@@ -16,7 +16,7 @@
 # Target ISA:  ARMv7E-M
 # ----------------------------------------------------------------------
 
-from code_generator.CodegenUtilTFlite import GenerateSourceFilesFromTFlite
+from common_utils.tinyengine.code_generator.CodegenUtilTFlite import GenerateSourceFilesFromTFlite
 from mcunet.mcunet.model_zoo import download_tflite
 
 # 1: Let's first build our pretrained VWW model

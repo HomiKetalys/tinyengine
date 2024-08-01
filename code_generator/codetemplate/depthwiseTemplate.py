@@ -27,6 +27,7 @@ class depthwiseInplace:
         stride,
         dataflow="CHW",
         fp_requantize=False,
+        inplace=False,
     ):
         self.pad_h = pad_h
         self.pad_w = pad_w
@@ -36,6 +37,7 @@ class depthwiseInplace:
         self.arch = "ARMv7E-M"  # by default
         self.dataflow = dataflow
         self.fp_requantize = fp_requantize
+        self.inplace=inplace
 
     def setArch(self, arch):
         self.arch = arch
@@ -332,7 +334,10 @@ class depthwiseInplace:
         retString += """
     for (c = 0; c < input_ch; c++){"""
         retString += self._genFixedLoadHWC2CHW()
-        retString += self._assignInplaceOut(2, "input")
+        if self.inplace:
+            retString += self._assignInplaceOut(2, "input")
+        else:
+            retString += self._assignInplaceOut(2, "output")
         retString += self._genHandle1CH(2, "input_ch")
         retString += """
     }\n"""
@@ -392,6 +397,8 @@ class depthwiseInplace:
             )
         retString += "    " * pre_indent + "ksrc += " + str(self.kernel_h * self.kernel_w) + ";\n"
         retString += "    " * pre_indent + "input++;"
+        if not self.inplace:
+            retString += "    " * pre_indent + "output++;"
         return retString
 
     def _genHandle1CH_CWH(self, pre_indent, out_offset_str):
@@ -415,6 +422,8 @@ class depthwiseInplace:
             )
         retString += "    " * pre_indent + "ksrc += " + str(self.kernel_h * self.kernel_w) + ";\n"
         retString += "    " * pre_indent + "input++;"
+        if not self.inplace:
+            retString += "    " * pre_indent + "output++;"
         return retString
 
     def genFile(self, path):
@@ -561,13 +570,13 @@ class depthwiseInplace:
         if self.fp_requantize:
             retString += """
             /* requantize */
-            sum0 = (float) sum0 * *scales;
+            sum0 = roundf((float) sum0 * *scales);
             sum0 += output_offset;
             sum0 = TN_MAX(sum0, activation_min);
             sum0 = TN_MIN(sum0, activation_max);
             output[(i * output_x + j * 2) * channel_offset] = sum0;
 
-            sum1 = (float) sum1 * *scales;
+            sum1 = roundf((float) sum1 * *scales);
             sum1 += output_offset;
             sum1 = TN_MAX(sum1, activation_min);
             sum1 = TN_MIN(sum1, activation_max);
@@ -604,7 +613,7 @@ class depthwiseInplace:
 
         if self.fp_requantize:
             retString += """
-            sum = (float) sum * *scales;
+            sum = roundf((float) sum * *scales);
             sum += output_offset;
             sum = TN_MAX(sum, activation_min);
             sum = TN_MIN(sum, activation_max);
@@ -660,13 +669,13 @@ class depthwiseInplace:
         if self.fp_requantize:
             retString += """
             /* requantize */
-            sum0 = (float) sum0 * *scales;
+            sum0 = roundf((float) sum0 * *scales);
             sum0 += output_offset;
             sum0 = TN_MAX(sum0, activation_min);
             sum0 = TN_MIN(sum0, activation_max);
             output[(i * output_x + j * 2) * channel_offset] = sum0;
 
-            sum1 = (float) sum1 * *scales;
+            sum1 = roundf((float) sum1 * *scales);
             sum1 += output_offset;
             sum1 = TN_MAX(sum1, activation_min);
             sum1 = TN_MIN(sum1, activation_max);
@@ -703,7 +712,7 @@ class depthwiseInplace:
 
         if self.fp_requantize:
             retString += """
-            sum = (float) sum * *scales;
+            sum = roundf((float) sum * *scales);
             sum += output_offset;
             sum = TN_MAX(sum, activation_min);
             sum = TN_MIN(sum, activation_max);
