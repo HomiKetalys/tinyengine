@@ -10,7 +10,7 @@ from .utils import get_input_tensors, get_nhwc_from_shape, get_output_tensors, g
 from ...tflite.BuiltinOptions import BuiltinOptions
 
 
-def parse_sigmoid(op, model: Model.Model):
+def parse_sigmoid(op, model: Model.Model,table_id):
     # operator
     op_code_str = getOpCodeStr(op, model)
 
@@ -70,6 +70,7 @@ def parse_sigmoid(op, model: Model.Model):
         "output_zero_point": output_zero_point,
         "input_scale": input_scale,
         "output_scale": output_scale,
+        "table_id": table_id,
     }
     op = sigmoid.Sigmoid(params)
 

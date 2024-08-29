@@ -54,16 +54,18 @@ tinyengine_status max_pooling(const q7_t* input, const uint16_t input_h, const u
 {
 	int h, w, c;
 	int sh, sw;
+    int stride=input_h/output_h;
 	for(c = 0; c < input_c; c++){
 		for(h = 0; h < output_h; h++){
 			for(w = 0; w < output_w; w++){
 				int max = out_activation_min;
-                max=(h<sample_h/2||output_h-1-h<sample_h/2||w<sample_w/2||output_w-1-w<sample_w/2)?offset:max;
+                int inw=w*stride,inh=h*stride;
+                max=(inh<sample_h/2||input_h-1-inh<sample_h/2||inw<sample_w/2||input_w-1-inw<sample_w/2)?offset:max;
 
 				for(sh = -sample_h/2; sh <= sample_h/2; sh++){
-					int height = TN_MIN(TN_MAX(sh + h ,0),output_h-1);
+					int height = TN_MIN(TN_MAX(sh + inh ,0),input_h-1);
 					for(sw = -sample_w/2; sw <= sample_w/2; sw++){
-						int width = TN_MIN(TN_MAX(sw + w ,0),output_w-1);
+						int width = TN_MIN(TN_MAX(sw + inw ,0),input_w-1);
 						max = TN_MAX(max,input[(width + height * input_w) * input_c + c]);
 					}
 				}

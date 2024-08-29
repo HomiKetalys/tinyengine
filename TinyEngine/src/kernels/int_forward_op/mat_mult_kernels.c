@@ -18,6 +18,7 @@
 
 #include "arm_nnsupportfunctions.h"
 #include "tinyengine_lib.h"
+#include "tinyengine_function.h"
 
 /*
    * Matrix-multiplication function for convolution with uint8

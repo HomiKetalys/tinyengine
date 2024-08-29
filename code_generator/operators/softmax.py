@@ -3,11 +3,11 @@ import warnings
 from ..constant import USE_BIT_MASK
 from .basic_utils import basicOperator, deep_copy_dicts, overwrite_dicts
 
-__all__ = ["Sigmoid"]
+__all__ = ["Softmax"]
 
 default_params = {
     # op related
-    "op": "Sigmoid",
+    "op": "Softmax",
     "input_idx": None,
     "output_idx": None,
     # tensor related
@@ -31,7 +31,7 @@ default_params = {
 }
 
 
-class Sigmoid(basicOperator):
+class Softmax(basicOperator):
     idx = 0
 
     def __init__(self, params: dict) -> None:
@@ -65,10 +65,10 @@ class Sigmoid(basicOperator):
         params = self.params
 
         string += (
-                f"msigmoid({str(int(params['input_h'] * params['input_w'] * params['input_c']))}, "
+                f"msoftmax({str(int(params['input_h'] * params['input_w']))}, {str(int(params['input_c']))},"
                 + f"{self._getBufferstr(params['input_buf_add'], params['input_buf_add_offset'])},"
                 + f"{str(params['input_scale'])},{str(params['input_zero_point'])},"
-                + f"{str(params['output_scale'])},{str(params['output_zero_point'])},&table_buffer[0],{str(params['table_id'])},"
+                + f"{str(params['output_scale'])},{str(params['output_zero_point'])},"
                 + f"{self._getBufferstr(params['output_buf_add'], params['output_buf_add_offset'])});\n"
         )
         return string

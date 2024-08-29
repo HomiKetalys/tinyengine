@@ -2,15 +2,14 @@ import math
 
 import numpy as np
 
-from common_utils.tinyengine.code_generator.operators import quantize
+from common_utils.tinyengine.code_generator.operators import softmax
 from common_utils.tinyengine.code_generator.tflite import Model
-from common_utils.tinyengine.code_generator.tflite.GatherOptions import GatherOptions
 
 from .utils import get_input_tensors, get_nhwc_from_shape, get_output_tensors, getOpCodeStr, getTensorTypeStr
-from ...tflite.BuiltinOptions import BuiltinOptions
+from ...tflite.SoftmaxOptions import SoftmaxOptions
 
 
-def parse_quantize(op, model: Model.Model,table_id):
+def parse_softmax(op, model: Model.Model,table_id):
     # operator
     op_code_str = getOpCodeStr(op, model)
 
@@ -30,6 +29,9 @@ def parse_quantize(op, model: Model.Model,table_id):
     _, output_h, output_w, output_c = get_nhwc_from_shape(output_tensor.tensor.ShapeAsNumpy())
     assert input_h  == output_h, "tensor shpae not consistent"
     assert input_w  == output_w, "tensor shpae not consistent"
+
+
+
 
     # tensor types
     input_type = getTensorTypeStr(input_tensor.tensor.Type())
@@ -70,8 +72,8 @@ def parse_quantize(op, model: Model.Model,table_id):
         "output_zero_point": output_zero_point,
         "input_scale": input_scale,
         "output_scale": output_scale,
-        "table_id": table_id,
+        "table_id":table_id,
     }
-    op = quantize.Quantize(params)
+    op = softmax.Softmax(params)
 
     return op

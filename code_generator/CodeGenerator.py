@@ -27,14 +27,14 @@ source_path = Codegen_root + "Source/"
 
 use_hard_switsh = False
 gen_kernels = True
-use_aggressive_unroll = True
+use_aggressive_unroll = False
 
 
 class CodeGenerator:
     """Provide utilities to generate C code for a given model and memory schdeule."""
 
     parse_count = 0
-    header_handle = None
+    params_handle = None
     source_handle = None
 
     def __init__(
@@ -54,6 +54,7 @@ class CodeGenerator:
         is_training=False,
         codegen_root="./codegen/",
         model_name="network",
+        max_table_id=0,
     ):
         self.MemSche = memsche
         include_path = codegen_root
@@ -64,6 +65,7 @@ class CodeGenerator:
         os.makedirs(include_path,exist_ok=True)
         os.makedirs(source_path,exist_ok=True)
 
+        self.params_handle = open(include_path + f"/gen_{model_name}_Model_params.h", "w")
         self.header_handle = open(include_path + f"/gen_{model_name}_Model.h", "w")
         self.source_handle = open(source_path + f"/gen_{model_name}_Model.c", "w")
         self.inplace = inplace
@@ -80,6 +82,7 @@ class CodeGenerator:
         self.detectionUtils = detectionUtils
         self.is_training = is_training
         self.model_name=model_name
+        self.max_table_id=max_table_id
 
     def _readOnly(self, name):
         if self.outputTables is None or name is None:
@@ -482,9 +485,10 @@ void invoke_1patch(uint16_t pad_t, uint16_t pad_b, uint16_t pad_l ,uint16_t pad_
 
     def _genMemBuffer(self):
         schedule = self.MemSche
+        fp = self.params_handle
+        fp_h=self.header_handle
         # define output tensor
         string = "#define NNoutput &buffer0[" + str(_findtheinferenceOutput(schedule.layer)) + "];"
-        fp = self.header_handle
         fp.write("\n" + string + "\n")
 
         # activation buffers
@@ -493,7 +497,8 @@ void invoke_1patch(uint16_t pad_t, uint16_t pad_b, uint16_t pad_l ,uint16_t pad_
         string = "#define PEAK_MEM " + str(schedule.peakmem) + "\n" + "#define MODEL_SIZE " + str(schedule.flash) + "\n"
         fp.write(string + "\n")
 
-        string = "static signed char buffer[" + str(schedule.peakmem) + "];\n"
+        string = f"extern signed char buffer[];\n" \
+                 f"static signed char table_buffer[{self.max_table_id*256}];\n"
         fp.write(string)
         accumulate_ptr = 0
         string = "static signed char *buffer0 = &buffer[" + str(accumulate_ptr) + "];\n"
@@ -511,6 +516,9 @@ void invoke_1patch(uint16_t pad_t, uint16_t pad_b, uint16_t pad_l ,uint16_t pad_
         string = "static const int KBuffer_size = " + str(int(schedule.buffers["kernel"])) + ";\n"
         fp.write(string + "\n")
 
+        string=f"#define {self.model_name.upper()}_BUFFER_SIZE "+str(schedule.peakmem)
+        fp_h.write(string+"\n")
+
     def _includeHeaders(self):
         include_string = f"""/* Automatically generated source file */
 #include <float.h>
@@ -519,6 +527,7 @@ void invoke_1patch(uint16_t pad_t, uint16_t pad_b, uint16_t pad_l ,uint16_t pad_
 
 //#include "gen_{self.model_name}_NN.h"
 #include "gen_{self.model_name}_Model.h"
+#include "gen_{self.model_name}_Model_params.h"
 #include "gen_{self.model_name}_Include.h"
 """
         if self.profile_mode:
@@ -771,7 +780,7 @@ signed char* get_{self.model_name}_Output() """+"""{
                     self.parse_count += 1
 
     def _parseCWHWeight(self, Lindex, weight, height, width, channel):
-        fp = self.header_handle
+        fp = self.params_handle
         # 8bit implementation
         if self.BIT == 8:
             string = "static const unsigned char CWHweight" + str(Lindex) + "[" + str(len(weight)) + "] = {"
@@ -789,7 +798,7 @@ signed char* get_{self.model_name}_Output() """+"""{
         fp.write("};\n")
 
     def _parseCHWWeight(self, Lindex, weight, channel):
-        fp = self.header_handle
+        fp = self.params_handle
         kernelsize = int(len(weight) / channel)
         # 8bit implementation
         if self.BIT == 8:
@@ -807,7 +816,7 @@ signed char* get_{self.model_name}_Output() """+"""{
         fp.write("};\n")
 
     def _parseEffectivescales(self, Lindex, scales):
-        fp = self.header_handle
+        fp = self.params_handle
         string = "static const float scales" + str(Lindex) + "[" + str(len(scales)) + "] = {"
         fp.write(string)
         for _, value in enumerate(scales):
@@ -815,7 +824,7 @@ signed char* get_{self.model_name}_Output() """+"""{
         fp.write("};\n")
 
     def _parseWeight(self, Lindex, weight, weight_name=None, is_const=True):
-        fp = self.header_handle
+        fp = self.params_handle
         const_str = "const " if is_const else ""
         string = f"static {const_str}unsigned char weight" + str(Lindex) + "[" + str(len(weight)) + "] = {"
         fp.write(string)
@@ -847,7 +856,7 @@ signed char* get_{self.model_name}_Output() """+"""{
             fp.write(string)
 
     def _parseWeightPartial(self, Lindex, weight, first_k_channel=None, weight_name=None, is_const=True):
-        fp = self.header_handle
+        fp = self.params_handle
         assert not is_const
         weight_SRAM = weight[:, :, :, 0:first_k_channel]
         # weight in SRAM
@@ -885,13 +894,13 @@ signed char* get_{self.model_name}_Output() """+"""{
             fp.write(string)
 
     def _parseWeightSRAM(self, Lindex, mem_str):
-        fp = self.header_handle
+        fp = self.params_handle
         string = f"static signed char *weight{str(Lindex)} = &{mem_str};\n"
         string += f"static float *weight_fp{str(Lindex)} = (float *)&{mem_str};\n"
         fp.write(string)
 
     def _parseoffsetBias(self, Lindex, bias, input_offset, weight, channel, bias_name=None, is_const=True):
-        fp = self.header_handle
+        fp = self.params_handle
         const_str = "const " if is_const else ""
         string = f"static {const_str}int32_t offsetBias" + str(Lindex) + "[" + str(len(bias)) + "] = {"
         fp.write(string)
@@ -918,7 +927,7 @@ signed char* get_{self.model_name}_Output() """+"""{
             fp.write(string)
 
     def _parseBias(self, Lindex, bias, bias_name=None, is_const=True):
-        fp = self.header_handle
+        fp = self.params_handle
         const_str = "const " if is_const else ""
         string = f"static {const_str}int32_t bias" + str(Lindex) + "[" + str(len(bias)) + "] = {"
         fp.write(string)
@@ -939,7 +948,7 @@ signed char* get_{self.model_name}_Output() """+"""{
             fp.write(string)
 
     def _parseRequantize(self, Lindex, shift, multiplier):
-        fp = self.header_handle
+        fp = self.params_handle
         string = "static const int32_t shift" + str(Lindex) + "[" + str(len(shift)) + "] = {"
         fp.write(string)
         for _, value in enumerate(shift):
@@ -960,8 +969,9 @@ signed char* get_{self.model_name}_Output() """+"""{
         return a.astype(int)
 
     def _closefp(self):
-        self.header_handle.close()
+        self.params_handle.close()
         self.source_handle.close()
+        self.header_handle.close()
 
 
 def _findtheinferenceOutput(layers):

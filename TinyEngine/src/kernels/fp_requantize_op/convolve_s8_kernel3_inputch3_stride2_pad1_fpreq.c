@@ -45,9 +45,19 @@ tinyengine_status convolve_s8_kernel3_inputch3_stride2_pad1_fpreq(
 	q15_t pad_out = pad16 + inoff16;
 	q31_t pad_out_q15x2 = __PKHBT(pad_out, pad_out, 16);
 	q31_t offset_q15x2 = __PKHBT(inoff16, inoff16, 16);
+    int32_t iscales[output_ch];
 
+    const uint32_t max_multi=0xffffffff;
+    for(int i=0;i<output_ch;i++)
+    {
+        iscales[i]=((int32_t)(scales[i]*max_multi));
+    }
 	const q7_t *ip_a0 = kernel;
-
+    q7_t *(*mat_mult_func)();
+    if(output_activation_min==-128&&output_activation_max==127)
+        mat_mult_func=mat_mult_kernel3_input3_s8_s16_ssat_fpreq;
+    else
+        mat_mult_func=mat_mult_kernel3_input3_s8_s16_fpreq;
 	for (int i = 0; i < output_ch; i += 2) {
 		q15_t *dst1 = &kbuf[i * 27]; //each q31_t store 2 elements
 		q15_t *dst2 = dst1 + 27;
@@ -226,8 +236,8 @@ tinyengine_status convolve_s8_kernel3_inputch3_stride2_pad1_fpreq(
 			/* Computation is filed for every 2 columns */
 			if (two_column_buf == runtime_buf + 2 * 27) {
 
-				out = mat_mult_kernel3_input3_s8_s16_fpreq(kernel, runtime_buf,
-						output_ch, scales, output_offset, output_activation_min,
+				out = mat_mult_func(kernel, runtime_buf,
+						output_ch, iscales, output_offset, output_activation_min,
 						output_activation_max, input_ch * kernel_y * kernel_x,
 						bias, out, kbuf);
 

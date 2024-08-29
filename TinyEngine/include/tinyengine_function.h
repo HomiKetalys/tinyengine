@@ -188,13 +188,21 @@ __STATIC_FORCEINLINE q31_t arm_nn_read_q7x4_ia(const q7_t **in_q7)
 
 
 tinyengine_status msigmoid(int size, const int8_t* input_data, const float input_scale, const int32_t input_zero,
-            const float output_scale,const int32_t zero_y, int8_t* output_data);
+            const float output_scale,const int32_t zero_y,const int8_t* table_buffer,const int32_t table_id, int8_t* output_data);
 tinyengine_status mtanh(int size, const int8_t* input_data, const float input_scale, const int32_t input_zero,
-            const float output_scale,const int32_t zero_y, int8_t* output_data);
+            const float output_scale,const int32_t zero_y,const int8_t* table_buffer,const int32_t table_id, int8_t* output_data);
 tinyengine_status mquantize(int size, const int8_t* input_data, const float input_scale, const int32_t input_zero,
-            const float output_scale,const int32_t zero_y, int8_t* output_data);
+            const float output_scale,const int32_t zero_y,const int8_t* table_buffer,const int32_t table_id, int8_t* output_data);
 tinyengine_status mdequantize(int size, const int8_t* input_data, const float input_scale, const int32_t input_zero,
             float* output_data);
+
+tinyengine_status mgather(int size, const int8_t* input1_data,const int32_t* input2_data,int ch1,int ch2,int8_t* output_data);
+tinyengine_status mconcat2(int size, const int8_t* input1_data,const int8_t* input2_data,int ch1,int ch2,int8_t* output_data);
+tinyengine_status mconcat3(int size, const int8_t* input1_data,const int8_t* input2_data,const int8_t* input3_data,int ch1,int ch2,int ch3,int8_t* output_data);
+tinyengine_status mconcat4(int size, const int8_t* input1_data,const int8_t* input2_data,const int8_t* input3_data,const int8_t* input4_data,int ch1,int ch2,int ch3,int ch4,int8_t* output_data);
+
+tinyengine_status msoftmax(int size, int ch,const int8_t* input_data, const float input_scale, const int32_t input_zero,
+            const float output_scale,const int32_t zero_y, int8_t* output_data);
 
 #define convolve_1x1_s8_oddch_fpreq convolve_1x1_s8_fpreq
 

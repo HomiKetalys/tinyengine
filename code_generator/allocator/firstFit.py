@@ -45,6 +45,7 @@ class FirstFit(BaseAllocator):
                     or start < rec["end"] < end
                     or rec["start"] < start < rec["end"]
                     or rec["start"] < end < rec["end"]
+                    or (rec["start"]==start and rec["end"] == end)
                 ):  # overlap with the insert block
                     # placement of the rectatngle
                     y0 = rec["placement"]

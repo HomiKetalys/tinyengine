@@ -18,7 +18,7 @@ from .utils import (
 )
 
 
-def parse_conv2d(op, model: Model.Model, tmpPADIndices=None):
+def parse_conv2d(op, model: Model.Model, graph=None):
     # operator
     op_code_str = getOpCodeStr(op, model)
 
@@ -46,11 +46,12 @@ def parse_conv2d(op, model: Model.Model, tmpPADIndices=None):
         conv_options = DepthwiseConv2DOptions()
         conv_options.Init(op_options.Bytes, op_options.Pos)
 
+
     # conv parameters
     stride_h = conv_options.StrideH()
     stride_w = conv_options.StrideW()
     fused_activation_function=conv_options.FusedActivationFunction()
-    assert fused_activation_function==3 or fused_activation_function==0
+    assert fused_activation_function==3 or fused_activation_function==0 or fused_activation_function==1
     # shapes
     _, input_h, input_w, input_c = input_tensor.tensor.ShapeAsNumpy()
     if op_code_str == "CONV_2D":
@@ -87,16 +88,23 @@ def parse_conv2d(op, model: Model.Model, tmpPADIndices=None):
     multiplier, shift = getMultiplierShift(effective_scale)
 
     # find previous layer and redirct the index and fuse pad into conv
-    if input_tensor.tensor_idx in tmpPADIndices:
-        tmpPADIndice=tmpPADIndices[input_tensor.tensor_idx]
-        if tmpPADIndice.output_idx == input_tensor.tensor_idx:
-            input_idx = tmpPADIndice.input_idx
-            input_h = input_h - math.floor(kernel_h / 2) * 2
-            input_w = input_w - math.floor(kernel_h / 2) * 2
-        else:
-            input_idx = input_tensor.tensor_idx
-    else:
-        input_idx = input_tensor.tensor_idx
+    # if input_tensor.tensor_idx in tmpPADIndices:
+    #     tmpPADIndice=tmpPADIndices[input_tensor.tensor_idx]
+    #     if tmpPADIndice.output_idx == input_tensor.tensor_idx:
+    #         input_idx = tmpPADIndice.input_idx
+    #         input_h = input_h - math.floor(kernel_h / 2) * 2
+    #         input_w = input_w - math.floor(kernel_h / 2) * 2
+    #     else:
+    #         input_idx = input_tensor.tensor_idx
+    # else:
+    #     input_idx = input_tensor.tensor_idx
+
+    if conv_options.Padding()==1:
+        input_h = input_h - math.floor(kernel_h / 2) * 2
+        input_w = input_w - math.floor(kernel_h / 2) * 2
+
+
+
 
     params = {
         # operator
@@ -108,7 +116,7 @@ def parse_conv2d(op, model: Model.Model, tmpPADIndices=None):
         "stride_h": stride_h,
         "stride_w": stride_w,
         # tensor
-        "input_idx": input_idx,
+        "input_idx": input_tensor.tensor_idx,
         "output_idx": output_tensor.tensor_idx,
         "input_dim": 3,
         "output_dim": 3,
@@ -135,8 +143,18 @@ def parse_conv2d(op, model: Model.Model, tmpPADIndices=None):
     }
 
     if op_code_str == "CONV_2D":
+        params['input2_idx']=weight_tensor.tensor_idx
+        params['input2_h']=1
+        params['input2_w'] = 1
+        params['input2_c'] = input_c*output_c*kernel_h*kernel_w+output_c*4+output_c*4
+        params['input2_dtype']='int8'
         op = conv2d.Conv2d(params)
     elif op_code_str == "DEPTHWISE_CONV_2D":
+        params['input2_idx']=weight_tensor.tensor_idx
+        params['input2_h']=1
+        params['input2_w'] = 1
+        params['input2_c'] = output_c*kernel_h*kernel_w
+        params['input2_dtype']='int8'
         op = depthwiseConv2d.DepthwiseConv2d(params)
 
     return op

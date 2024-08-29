@@ -29,7 +29,7 @@ tinyengine_status convolve_1x1_s8_fpreq(const q7_t *input,
 		const int32_t out_offset, const int32_t input_offset,
 		const int32_t out_activation_min, const int32_t out_activation_max,
 		q7_t *output, const uint16_t output_x, const uint16_t output_y,
-		const uint16_t output_ch, q15_t *runtime_buf) {
+		const uint16_t output_ch, q15_t *runtime_buf,int8_t *kbuf) {
 	if (input_ch % 4 != 0 || input_ch % 2 != 0) {
 		return PARAM_NO_SUPPORT;
 	}
@@ -46,7 +46,21 @@ tinyengine_status convolve_1x1_s8_fpreq(const q7_t *input,
 
 	const int16_t inoff16 = input_offset;
 	q31_t offset_q15x2 = __PKHBT(inoff16, inoff16, 16);
+    memcpy(kbuf,kernel,input_ch*output_ch);
+    memcpy(kbuf+input_ch*output_ch,bias,4*output_ch);
+    //memcpy(kbuf+input_ch*output_ch+4*output_ch,scales,4*output_ch);
+    int32_t *iscales=kbuf+input_ch*output_ch+4*output_ch;
+    const uint32_t max_multi=0xffffffff;
+    for(int i=0;i<output_ch;i++)
+    {
+        iscales[i]=((int32_t)(scales[i]*max_multi));
+    }
 
+    q7_t *(*mat_mult_func)();
+    if(out_activation_min==-128&&out_activation_max==127)
+        mat_mult_func=mat_mult_kernel_s8_s16_reordered_ssat_fpreq;
+    else
+        mat_mult_func=mat_mult_kernel_s8_s16_reordered_fpreq;
 	for (i_element = 0; i_element < num_elements / 2; i_element++) {
 		/* Fill buffer for partial im2col - two columns at a time */
 		q7_t *src = &input[i_element * input_ch * 2];
@@ -66,10 +80,10 @@ tinyengine_status convolve_1x1_s8_fpreq(const q7_t *input,
 			cnt--;
 		}
 
-		out = mat_mult_kernel_s8_s16_reordered_fpreq(kernel, two_column_buffer,
-				output_ch, scales, (q7_t) out_offset, out_activation_min,
-				out_activation_max, input_ch * DIM_KER_Y * DIM_KER_X, bias,
-				out);
+        out = mat_mult_func(kbuf, two_column_buffer,
+                output_ch, kbuf+input_ch*output_ch+4*output_ch, out_offset, out_activation_min,
+                out_activation_max, input_ch * DIM_KER_Y * DIM_KER_X, kbuf+input_ch*output_ch,
+                out);
 	}
 
 	/* check if there is an odd column left-over for computation */

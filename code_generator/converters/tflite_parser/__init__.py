@@ -9,6 +9,7 @@ from .mean1dto2d import parse_mead1dto2d
 from .SEelement import parse_SEelement
 from .upsample import parse_upsample
 from .sigmoid import parse_sigmoid
+from .softmax import parse_softmax
 from .tanh import parse_tanh
 from .dequantize import parse_dequantize
 from .quantize import parse_quantize

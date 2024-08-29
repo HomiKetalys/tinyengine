@@ -1,3 +1,5 @@
+import math
+
 from common_utils.tinyengine.code_generator.operators import maxpool2d
 from common_utils.tinyengine.code_generator.tflite import Model
 from common_utils.tinyengine.code_generator.tflite.BuiltinOptions import BuiltinOptions
@@ -41,6 +43,9 @@ def parse_maxpool(op, model: Model.Model):
     input_type = getTensorTypeStr(input_tensor.tensor.Type())
     if input_type != "float32":
         input_zero_point = input_tensor.qnn_params["zero_point"]
+    if pool2d_options.Padding()==1:
+        input_h = input_h - math.floor(filter_h / 2) * 2
+        input_w = input_w - math.floor(filter_w / 2) * 2
 
     pool_params = {
         # operator

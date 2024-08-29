@@ -13,12 +13,16 @@ default_params = {
     "stride_h": None,
     "stride_w": None,
     "input_idx": None,
+    "input2_idx":None,
     "output_idx": None,
     # tensor related
     "input_dim": None,
     "input_h": None,
     "input_w": None,
     "input_c": None,
+    "input2_h": None,
+    "input2_w": None,
+    "input2_c": None,
     "output_dim": None,
     "output_h": None,
     "output_w": None,
@@ -27,6 +31,7 @@ default_params = {
     "kernel_h": None,
     "kernel_w": None,
     "input_dtype": "int8",
+    "input2_dtype": "int8",
     "output_dtype": "int8",
     # quantization related
     "weight_value": None,
@@ -56,6 +61,7 @@ default_params = {
     "output2_idx": None,
     "output2_dtype": "int8",
     "act":0,
+    "inplace":True,
 }
 
 
@@ -72,6 +78,13 @@ class DepthwiseConv2d(basicOperator):
             self.params["input_c"],
             self.params["input_w"],
             self.params["input_h"],
+        )
+        self._add_input(
+            self.params["input2_idx"],
+            self.params["input2_dtype"],
+            self.params["input2_c"],
+            self.params["input2_w"],
+            self.params["input2_h"],
         )
         self._add_output(
             self.params["output_idx"],
@@ -230,6 +243,8 @@ class DepthwiseConv2d(basicOperator):
             if params['act']==3:
                 min_act=params['output_zero_point']
                 max_act=min(127,round(6/params['output_scale']+params['output_zero_point']))
+            if params['act']==1:
+                min_act = params['output_zero_point']
             string += f"{str(params['output_zero_point'])},{str(params['input_zero_point'] * -1)},{min_act},{max_act},"
             if params["need_Bmask"]:
                 string += (
@@ -245,6 +260,7 @@ class DepthwiseConv2d(basicOperator):
 
             # intemediate buffers
             string += "sbuf,"
+            string += f"{self._getBufferstr(params['input2_buf_add'], params['input2_buf_add_offset'])},"
 
             # padding value
             string += f"{str(params['input_zero_point'])}"

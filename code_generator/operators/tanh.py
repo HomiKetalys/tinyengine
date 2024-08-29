@@ -26,6 +26,8 @@ default_params = {
     "output_zero_point": None,
     "input_scale": None,
     "output_scale": None,
+    "inplace":True,
+    "table_id":None,
 }
 
 
@@ -66,7 +68,7 @@ class Tanh(basicOperator):
                 f"mtanh({str(int(params['input_h'] * params['input_w'] * params['input_c']))}, "
                 + f"{self._getBufferstr(params['input_buf_add'], params['input_buf_add_offset'])},"
                 + f"{str(params['input_scale'])},{str(params['input_zero_point'])},"
-                + f"{str(params['output_scale'])},{str(params['output_zero_point'])},"
+                + f"{str(params['output_scale'])},{str(params['output_zero_point'])},&table_buffer[0],{str(params['table_id'])},"
                 + f"{self._getBufferstr(params['output_buf_add'], params['output_buf_add_offset'])});\n"
         )
         return string

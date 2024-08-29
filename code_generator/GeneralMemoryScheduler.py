@@ -80,18 +80,18 @@ class GeneralMemoryScheduler:
         # note: we need to handle stride == 2 for int8 depthwise to save memory
         if self.USE_INPLACE:
             for i, op in enumerate(self.layer):
-                if op.params["op"] == "DEPTHWISE_CONV_2D" and op.params["input_dtype"] == "int8" and not self.tflite_op:
+                if  "inplace" in op.params and op.params["inplace"] and op.params["input_dtype"] == "int8" and not self.tflite_op:
                     # set the idx of output and next layer input
                     previous_output_idx = op.output_tensors[0].graph_idx
                     op.output_tensors[0].graph_idx = op.input_tensors[0].graph_idx
-                    if (
-                        i + 1 < len(self.layer)
-                        and len(self.layer[i + 1].input_tensors) > 0
-                        and str(self.layer[i + 1].input_tensors[0].graph_idx) == str(previous_output_idx)
-                    ):
-                        self.layer[i + 1].input_tensors[0].graph_idx = op.input_tensors[0].graph_idx
+                    # if (
+                    #     i + 1 < len(self.layer)
+                    #     and len(self.layer[i + 1].input_tensors) > 0
+                    #     and str(self.layer[i + 1].input_tensors[0].graph_idx) == str(previous_output_idx)
+                    # ):
+                    #     self.layer[i + 1].input_tensors[0].graph_idx = op.input_tensors[0].graph_idx
                     # update following ops' tensors
-                    for following_idx in range(i, len(self.layer)):
+                    for following_idx in range(i+1, len(self.layer)):
                         for cnt, inp_tensor in enumerate(self.layer[following_idx].input_tensors):
                             if str(inp_tensor.graph_idx) == str(previous_output_idx):
                                 inp_tensor.graph_idx = op.input_tensors[0].graph_idx
@@ -196,14 +196,14 @@ class GeneralMemoryScheduler:
                         unallocated_tensors.append(t)
 
             # add each tensor
-            training_start_idx = _find_training_idx(layers=self.layer)
+            # training_start_idx = _find_training_idx(layers=self.layer)
             for cnt, t in enumerate(unallocated_tensors):
                 start_idx = i
                 # TODO: this is temp solution
-                if training_start_idx > i and "out_multiply" not in t.graph_idx:
-                    end_idx = i + 1 if i == 0 else num_layers
-                else:
-                    end_idx = i + 1
+                # if training_start_idx > i and "out_multiply" not in t.graph_idx:
+                #     end_idx = i + 1 if i == 0 else num_layers
+                # else:
+                end_idx = i + 1
                 for idx in range(start_idx + 1, num_layers):
                     for input_t in self.layer[idx].input_tensors:
                         if str(t.graph_idx) == str(input_t.graph_idx):

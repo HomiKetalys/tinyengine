@@ -45,6 +45,7 @@ class depthwiseInplace:
     def _genCode(self):
         retString = self._genHeader()
         retString += self._genKernelDefine() + ";\n"
+        retString += self._genKernelDefine(True) + ";\n"
         retString += self.genFuncDefine() + "\n{\n"
         if self.dataflow == "CHW":
             retString += self._genBufferInitialization()
@@ -60,6 +61,7 @@ class depthwiseInplace:
         retString += self._genEndStr()
         if self.dataflow == "CHW":
             retString += "\n" + self._genKernel()
+            retString += "\n" + self._genKernel(True)
         elif self.dataflow == "CWH":
             retString += "\n" + self._genKernelCWH()
 
@@ -90,7 +92,11 @@ class depthwiseInplace:
                 + self.dataflow
             )
 
-    def _getKernelName(self):
+    def _getKernelName(self,use_ssat=False):
+        if use_ssat:
+            ssat_str="_ssat"
+        else:
+            ssat_str=""
         if self.fp_requantize:
             return (
                 "depthwise_kernel"
@@ -101,6 +107,7 @@ class depthwiseInplace:
                 + str(self.stride)
                 + "_inplace_kernel_"
                 + self.dataflow
+                + ssat_str
                 + "_fpreq"
             )
         else:
@@ -113,6 +120,7 @@ class depthwiseInplace:
                 + str(self.stride)
                 + "_inplace_kernel_"
                 + self.dataflow
+                + ssat_str
             )
 
     def genFuncDefine(self):
@@ -127,7 +135,7 @@ class depthwiseInplace:
                 const int32_t output_activation_min,
                 const int32_t output_activation_max, q7_t *output,
                 const uint16_t output_x, const uint16_t output_y,
-                const uint16_t output_ch, q15_t *runtime_buf, q7_t pad_value)"""
+                const uint16_t output_ch, q15_t *runtime_buf,int8_t* kbuf, q7_t pad_value)"""
         else:
             retString += """(q7_t *input, const uint16_t input_x, const uint16_t input_y,
                 const uint16_t input_ch, const q7_t *kernel, const int32_t *bias, const int32_t *biasR,
@@ -136,16 +144,16 @@ class depthwiseInplace:
                 const int32_t output_activation_min,
                 const int32_t output_activation_max, q7_t *output,
                 const uint16_t output_x, const uint16_t output_y,
-                const uint16_t output_ch, q15_t *runtime_buf, q7_t pad_value)"""
+                const uint16_t output_ch, q15_t *runtime_buf,int8_t* kbuf, q7_t pad_value)"""
 
         return retString
 
-    def _genKernelDefine(self):
+    def _genKernelDefine(self,use_ssat=False):
         retString = ""
         if self.fp_requantize:
             retString += (
                 "void "
-                + self._getKernelName()
+                + self._getKernelName(use_ssat)
                 + """(
         const uint16_t output_y, const uint16_t output_x,
         const int32_t *bias, const int32_t *biasR, const q7_t *ksrc, const float *scales,
@@ -156,7 +164,7 @@ class depthwiseInplace:
         else:
             retString += (
                 "void "
-                + self._getKernelName()
+                + self._getKernelName(use_ssat)
                 + """(
         const uint16_t output_y, const uint16_t output_x,
         const int32_t *bias, const int32_t *biasR, const q7_t *ksrc, const int32_t *multiplier,
@@ -189,11 +197,17 @@ class depthwiseInplace:
 
     def _genBufferInitialization(self):
         retString = (
-            """
+            f"""
     uint16_t c,i,j;
     q7_t *cols_8b_start = (q7_t *)runtime_buf;
     q7_t* cols_8b = (q7_t* )cols_8b_start;
+    memcpy(kbuf,kernel,{self.kernel_w*self.kernel_h}*output_ch);
 
+    void *(*depthwise_kernel_func)();
+    if(output_activation_min==-128&&output_activation_max==127)
+        depthwise_kernel_func={self._getKernelName(True)};
+    else
+        depthwise_kernel_func={self._getKernelName()};
     //Set padding value
     q7_t PAD8 = pad_value;
     /* setup the padding regions for Im2col buffers */
@@ -234,7 +248,7 @@ class depthwiseInplace:
     }
 
     const q7_t *src;
-    const q7_t *ksrc = kernel;
+    const q7_t *ksrc = kbuf;
 """
         return retString
 
@@ -380,7 +394,7 @@ class depthwiseInplace:
         if self.fp_requantize:
             retString = (
                 "    " * pre_indent
-                + self._getKernelName()
+                + "depthwise_kernel_func"
                 + "(output_y, output_x, bias++, biasR++, ksrc, scales++, inplace_out, output_offset,"
                 + "output_activation_min, output_activation_max,cols_8b_start, input_x, "
                 + out_offset_str
@@ -389,7 +403,7 @@ class depthwiseInplace:
         else:
             retString = (
                 "    " * pre_indent
-                + self._getKernelName()
+                + "depthwise_kernel_func"
                 + "(output_y, output_x, bias++, biasR++, ksrc, output_mult++, output_shift++, inplace_out,"
                 + "output_offset,output_activation_min, output_activation_max,cols_8b_start, input_x, "
                 + out_offset_str
@@ -545,12 +559,14 @@ class depthwiseInplace:
 
         return retString
 
-    def _genKernel(self):
+    def _genKernel(self,use_ssat=False):
         retString = ""
         # function name
-        retString += self._genKernelDefine() + "\n{\n"
+        retString += self._genKernelDefine(use_ssat) + "\n{\n"
         retString += "    #define STRIDE " + str(self.stride) + "\n"
-        retString += "    int i, j;\n"
+        retString += f"    int i, j;\n" \
+                     f"    const uint32_t max_multi=0xffffffff;\n" \
+                     f"    int32_t iscales=(int32_t)((*scales)*max_multi);\n"
 
         # initialize accumulators as bias
         retString += """    /* MACs for each output */
@@ -568,36 +584,94 @@ class depthwiseInplace:
 
         # requantize
         if self.fp_requantize:
-            retString += """
+            if use_ssat:
+                retString += """
             /* requantize */
-            sum0 = roundf((float) sum0 * *scales);
-            sum0 += output_offset;
-            sum0 = TN_MAX(sum0, activation_min);
-            sum0 = TN_MIN(sum0, activation_max);
+            __asm volatile (
+                "SMMLA %0, %1, %2, %3"
+                : "=r" (sum0)
+                : "r" (sum0), "r" (iscales), "r" (output_offset)
+            );
+            __asm volatile (
+                "SMMLA %0, %1, %2, %3"
+                : "=r" (sum1)
+                : "r" (sum1), "r" (iscales), "r" (output_offset)
+            );
+            __asm volatile (
+            "SSAT %0, #8, %1"
+            : "=r" (sum0)
+            : "r" (sum0)
+            );
+            __asm volatile (
+                "SSAT %0, #8, %1"
+                : "=r" (sum1)
+                : "r" (sum1)
+            );
             output[(i * output_x + j * 2) * channel_offset] = sum0;
+            output[(i * output_x + (j * 2 + 1)) * channel_offset] = sum1;
 
-            sum1 = roundf((float) sum1 * *scales);
-            sum1 += output_offset;
+            cols_8b_iterptr += STRIDE * 2;
+        }
+        """
+            else:
+                retString += """
+            /* requantize */
+            __asm volatile (
+                "SMMLA %0, %1, %2, %3"
+                : "=r" (sum0)
+                : "r" (sum0), "r" (iscales), "r" (output_offset)
+            );
+            __asm volatile (
+                "SMMLA %0, %1, %2, %3"
+                : "=r" (sum1)
+                : "r" (sum1), "r" (iscales), "r" (output_offset)
+            );
+            sum0 = TN_MAX(sum0, activation_min);
             sum1 = TN_MAX(sum1, activation_min);
+            sum0 = TN_MIN(sum0, activation_max);
             sum1 = TN_MIN(sum1, activation_max);
+            output[(i * output_x + j * 2) * channel_offset] = sum0;
             output[(i * output_x + (j * 2 + 1)) * channel_offset] = sum1;
 
             cols_8b_iterptr += STRIDE * 2;
         }
         """
         else:
-            retString += """
+            if use_ssat:
+                retString += """
             /* requantize */
             sum0 = arm_nn_requantize(sum0 + biasR[0], *multiplier, *shift);
-            sum0 += output_offset;
-            sum0 = TN_MAX(sum0, activation_min);
-            sum0 = TN_MIN(sum0, activation_max);
-            output[(i * output_x + j * 2) * channel_offset] = sum0;
-
             sum1 = arm_nn_requantize(sum1 + biasR[0], *multiplier, *shift);
+            sum0 += output_offset;
             sum1 += output_offset;
+            __asm volatile (
+            "SSAT %0, #8, %1"
+            : "=r" (sum0)
+            : "r" (sum0)
+            );
+            __asm volatile (
+                "SSAT %0, #8, %1"
+                : "=r" (sum1)
+                : "r" (sum1)
+            );
+            output[(i * output_x + j * 2) * channel_offset] = sum0;
+            output[(i * output_x + (j * 2 + 1)) * channel_offset] = sum1;
+
+            cols_8b_iterptr += STRIDE * 2;
+        }
+        """
+            else:
+                retString += """
+            /* requantize */
+            sum0 = arm_nn_requantize(sum0 + biasR[0], *multiplier, *shift);
+            sum1 = arm_nn_requantize(sum1 + biasR[0], *multiplier, *shift);
+            sum0 += output_offset;
+            sum1 += output_offset;
+            sum0 = TN_MAX(sum0, activation_min);
             sum1 = TN_MAX(sum1, activation_min);
+            sum0 = TN_MIN(sum0, activation_max);
             sum1 = TN_MIN(sum1, activation_max);
+            output[(i * output_x + j * 2) * channel_offset] = sum0;
             output[(i * output_x + (j * 2 + 1)) * channel_offset] = sum1;
 
             cols_8b_iterptr += STRIDE * 2;

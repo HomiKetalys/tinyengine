@@ -777,43 +777,86 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq(const q7_t *input_a,
 		const int32_t *const output_bias, q7_t *out_0) {
 	/* set up the second output pointers */
 	q7_t *out_1 = out_0 + output_ch;
-	const int32_t *bias = output_bias;
 
+	const int32_t *bias = output_bias;
+    const int32_t *iscales=scales;
+    const q7_t *ip_a0 = input_a;
 	uint16_t row_count = output_ch / 2;
-	const q7_t *ip_a0 = input_a;
+
 	/* this loop over rows in A */
 	while (row_count) {
-		/* setup pointers for B */
-		const q15_t *ip_b0 = input_b;
-		const q15_t *ip_b1 = ip_b0 + num_col_a;
 
-		/* align the second pointer for A */
-		const q7_t *ip_a1 = ip_a0 + num_col_a;
-		const float scale_0 = scales[0];
-		const float scale_1 = scales[1];
+		const int32_t scale_0 = iscales[0];
+		const int32_t scale_1 = iscales[1];
 
 		/* Init accumulator with bias for channel N and N + 1 */
 		q31_t ch_0_out_0 = *bias;
 		q31_t ch_0_out_1 = *bias++;
+
 		q31_t ch_1_out_0 = *bias;
 		q31_t ch_1_out_1 = *bias++;
 
-		uint16_t col_count = num_col_a / 4;
+        /* setup pointers for B */
+		const uint16_t *ip_b0 = input_b;
+		const uint16_t *ip_b1 = ip_b0 + num_col_a;
+
+        /* align the second pointer for A */
+        const q7_t *ip_a1 = ip_a0 + num_col_a;
+
+		uint16_t col_count = num_col_a / 8;
+
 		/* accumulate over the vector */
 		while (col_count) {
-			q31_t a01, a02, a11, a12;
+            uint32_t a01, a02,a11,a12;
 			q31_t b0 = arm_nn_read_q15x2_ia(&ip_b0);
-			q31_t b1 = arm_nn_read_q15x2_ia(&ip_b1);
-
-			ip_a0 = read_and_pad_reordered(ip_a0, &a01, &a02);
-
+            q31_t b1 = arm_nn_read_q15x2_ia(&ip_b1);
+			a02 = arm_nn_read_s8x4_ia(&ip_a0);
+            a01 = SXTB16(a02);
+            __asm volatile (
+                "SXTB16 %0, %1, ROR #8"
+                : "=r" (a02)
+                : "r" (a02)
+            );
 			ch_0_out_0 = __SMLAD(a01, b0, ch_0_out_0);
-			ip_a1 = read_and_pad_reordered(ip_a1, &a11, &a12);
 			ch_0_out_1 = __SMLAD(a01, b1, ch_0_out_1);
+			a12 = arm_nn_read_s8x4_ia(&ip_a1);
+            a11 = SXTB16(a12);
+            __asm volatile (
+                "SXTB16 %0, %1, ROR #8"
+                : "=r" (a12)
+                : "r" (a12)
+            );
 			ch_1_out_0 = __SMLAD(a11, b0, ch_1_out_0);
 			b0 = arm_nn_read_q15x2_ia(&ip_b0);
 			ch_1_out_1 = __SMLAD(a11, b1, ch_1_out_1);
+			b1 = arm_nn_read_q15x2_ia(&ip_b1);
 
+			ch_0_out_0 = __SMLAD(a02, b0, ch_0_out_0);
+			ch_0_out_1 = __SMLAD(a02, b1, ch_0_out_1);
+			ch_1_out_0 = __SMLAD(a12, b0, ch_1_out_0);
+            b0 = arm_nn_read_q15x2_ia(&ip_b0);
+			ch_1_out_1 = __SMLAD(a12, b1, ch_1_out_1);
+            b1 = arm_nn_read_q15x2_ia(&ip_b1);
+
+			a02 = arm_nn_read_s8x4_ia(&ip_a0);
+            a01 = SXTB16(a02);
+            __asm volatile (
+                "SXTB16 %0, %1, ROR #8"
+                : "=r" (a02)
+                : "r" (a02)
+            );
+			ch_0_out_0 = __SMLAD(a01, b0, ch_0_out_0);
+			ch_0_out_1 = __SMLAD(a01, b1, ch_0_out_1);
+			a12 = arm_nn_read_s8x4_ia(&ip_a1);
+            a11 = SXTB16(a12);
+            __asm volatile (
+                "SXTB16 %0, %1, ROR #8"
+                : "=r" (a12)
+                : "r" (a12)
+            );
+			ch_1_out_0 = __SMLAD(a11, b0, ch_1_out_0);
+			b0 = arm_nn_read_q15x2_ia(&ip_b0);
+			ch_1_out_1 = __SMLAD(a11, b1, ch_1_out_1);
 			b1 = arm_nn_read_q15x2_ia(&ip_b1);
 
 			ch_0_out_0 = __SMLAD(a02, b0, ch_0_out_0);
@@ -823,31 +866,40 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq(const q7_t *input_a,
 
 			col_count--;
 		} /* while over col_count */
-
-		ch_0_out_0 = (q31_t) roundf((float) ch_0_out_0 * scale_0);
-		ch_0_out_0 += out_offset;
+        __asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_0_out_0)
+            : "r" (ch_0_out_0), "r" (scale_0), "r" (out_offset)
+        );
+        __asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_0_out_1)
+            : "r" (ch_0_out_1), "r" (scale_0), "r" (out_offset)
+        );
+        __asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_1_out_0)
+            : "r" (ch_1_out_0), "r" (scale_1), "r" (out_offset)
+        );
+        __asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_1_out_1)
+            : "r" (ch_1_out_1), "r" (scale_1), "r" (out_offset)
+        );
 		ch_0_out_0 = MAX(ch_0_out_0, activation_min);
-		ch_0_out_0 = MIN(ch_0_out_0, activation_max);
-		*out_0++ = (q7_t) ch_0_out_0;
-
-		ch_0_out_1 = (q31_t) roundf((float) ch_0_out_1 * scale_0);
-		ch_0_out_1 += out_offset;
 		ch_0_out_1 = MAX(ch_0_out_1, activation_min);
-		ch_0_out_1 = MIN(ch_0_out_1, activation_max);
-		*out_1++ = (q7_t) ch_0_out_1;
-
-		ch_1_out_0 = (q31_t) roundf((float) ch_1_out_0 * scale_1);
-		ch_1_out_0 += out_offset;
 		ch_1_out_0 = MAX(ch_1_out_0, activation_min);
-		ch_1_out_0 = MIN(ch_1_out_0, activation_max);
-		*out_0++ = (q7_t) ch_1_out_0;
-
-		ch_1_out_1 = (q31_t) roundf((float) ch_1_out_1 * scale_1);
-		ch_1_out_1 += out_offset;
 		ch_1_out_1 = MAX(ch_1_out_1, activation_min);
+		ch_0_out_0 = MIN(ch_0_out_0, activation_max);
+		ch_0_out_1 = MIN(ch_0_out_1, activation_max);
+		ch_1_out_0 = MIN(ch_1_out_0, activation_max);
 		ch_1_out_1 = MIN(ch_1_out_1, activation_max);
+		*out_0++ = (q7_t) ch_0_out_0;
+		*out_1++ = (q7_t) ch_0_out_1;
+		*out_0++ = (q7_t) ch_1_out_0;
 		*out_1++ = (q7_t) ch_1_out_1;
-		scales += 2;
+
+		iscales += 2;
 
 		/* skip row */
 		ip_a0 += num_col_a;
@@ -858,6 +910,7 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq(const q7_t *input_a,
 		/* setup pointers for B */
 		const q15_t *ip_b0 = input_b;
 		const q15_t *ip_b1 = ip_b0 + num_col_a;
+        //const q7_t *ip_a0 = ip_a0_;
 
 		/* Init accumulator with bias for channel N + 1 */
 		q31_t ch_0_out_0 = *bias;
@@ -883,14 +936,225 @@ q7_t* mat_mult_kernel_s8_s16_reordered_fpreq(const q7_t *input_a,
 			col_count--;
 		} /* while over col_count */
 
-		ch_0_out_0 = (q31_t) roundf((float) ch_0_out_0 * *scales);
-		ch_0_out_0 += out_offset;
+        int32_t scale_0=*iscales;
+		__asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_0_out_0)
+            : "r" (ch_0_out_0), "r" (scale_0), "r" (out_offset)
+        );
 		ch_0_out_0 = MAX(ch_0_out_0, activation_min);
 		ch_0_out_0 = MIN(ch_0_out_0, activation_max);
 		*out_0++ = (q7_t) ch_0_out_0;
 
-		ch_0_out_1 = (q31_t) roundf((float) ch_0_out_1 * *scales);
-		ch_0_out_1 += out_offset;
+		__asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_0_out_1)
+            : "r" (ch_0_out_1), "r" (scale_0), "r" (out_offset)
+        );
+		ch_0_out_1 = MAX(ch_0_out_1, activation_min);
+		ch_0_out_1 = MIN(ch_0_out_1, activation_max);
+		*out_1++ = (q7_t) ch_0_out_1;
+	}
+
+	out_0 += output_ch;
+
+	/* return the new output pointer with offset */
+	return out_0;
+}
+
+q7_t* mat_mult_kernel_s8_s16_reordered_ssat_fpreq(const q7_t *input_a,
+		const q15_t *input_b, const uint16_t output_ch, const float *scales,
+		const int32_t out_offset, const int16_t activation_min,
+		const int16_t activation_max, const uint16_t num_col_a,
+		const int32_t *const output_bias, q7_t *out_0) {
+	/* set up the second output pointers */
+	q7_t *out_1 = out_0 + output_ch;
+
+	const int32_t *bias = output_bias;
+    const int32_t *iscales=scales;
+    const q7_t *ip_a0 = input_a;
+	uint16_t row_count = output_ch / 2;
+
+	/* this loop over rows in A */
+	while (row_count) {
+
+		const int32_t scale_0 = iscales[0];
+		const int32_t scale_1 = iscales[1];
+
+		/* Init accumulator with bias for channel N and N + 1 */
+		q31_t ch_0_out_0 = *bias;
+		q31_t ch_0_out_1 = *bias++;
+
+		q31_t ch_1_out_0 = *bias;
+		q31_t ch_1_out_1 = *bias++;
+
+        /* setup pointers for B */
+		const uint16_t *ip_b0 = input_b;
+		const uint16_t *ip_b1 = ip_b0 + num_col_a;
+
+        /* align the second pointer for A */
+        const q7_t *ip_a1 = ip_a0 + num_col_a;
+
+		uint16_t col_count = num_col_a / 8;
+
+		/* accumulate over the vector */
+		while (col_count) {
+            uint32_t a01, a02,a11,a12;
+			q31_t b0 = arm_nn_read_q15x2_ia(&ip_b0);
+            q31_t b1 = arm_nn_read_q15x2_ia(&ip_b1);
+			a02 = arm_nn_read_s8x4_ia(&ip_a0);
+            a01 = SXTB16(a02);
+            __asm volatile (
+                "SXTB16 %0, %1, ROR #8"
+                : "=r" (a02)
+                : "r" (a02)
+            );
+			ch_0_out_0 = __SMLAD(a01, b0, ch_0_out_0);
+			ch_0_out_1 = __SMLAD(a01, b1, ch_0_out_1);
+			a12 = arm_nn_read_s8x4_ia(&ip_a1);
+            a11 = SXTB16(a12);
+            __asm volatile (
+                "SXTB16 %0, %1, ROR #8"
+                : "=r" (a12)
+                : "r" (a12)
+            );
+			ch_1_out_0 = __SMLAD(a11, b0, ch_1_out_0);
+			b0 = arm_nn_read_q15x2_ia(&ip_b0);
+			ch_1_out_1 = __SMLAD(a11, b1, ch_1_out_1);
+			b1 = arm_nn_read_q15x2_ia(&ip_b1);
+
+			ch_0_out_0 = __SMLAD(a02, b0, ch_0_out_0);
+			ch_0_out_1 = __SMLAD(a02, b1, ch_0_out_1);
+			ch_1_out_0 = __SMLAD(a12, b0, ch_1_out_0);
+            b0 = arm_nn_read_q15x2_ia(&ip_b0);
+			ch_1_out_1 = __SMLAD(a12, b1, ch_1_out_1);
+            b1 = arm_nn_read_q15x2_ia(&ip_b1);
+
+			a02 = arm_nn_read_s8x4_ia(&ip_a0);
+            a01 = SXTB16(a02);
+            __asm volatile (
+                "SXTB16 %0, %1, ROR #8"
+                : "=r" (a02)
+                : "r" (a02)
+            );
+			ch_0_out_0 = __SMLAD(a01, b0, ch_0_out_0);
+			ch_0_out_1 = __SMLAD(a01, b1, ch_0_out_1);
+			a12 = arm_nn_read_s8x4_ia(&ip_a1);
+            a11 = SXTB16(a12);
+            __asm volatile (
+                "SXTB16 %0, %1, ROR #8"
+                : "=r" (a12)
+                : "r" (a12)
+            );
+			ch_1_out_0 = __SMLAD(a11, b0, ch_1_out_0);
+			b0 = arm_nn_read_q15x2_ia(&ip_b0);
+			ch_1_out_1 = __SMLAD(a11, b1, ch_1_out_1);
+			b1 = arm_nn_read_q15x2_ia(&ip_b1);
+
+			ch_0_out_0 = __SMLAD(a02, b0, ch_0_out_0);
+			ch_0_out_1 = __SMLAD(a02, b1, ch_0_out_1);
+			ch_1_out_0 = __SMLAD(a12, b0, ch_1_out_0);
+			ch_1_out_1 = __SMLAD(a12, b1, ch_1_out_1);
+
+			col_count--;
+		} /* while over col_count */
+        __asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_0_out_0)
+            : "r" (ch_0_out_0), "r" (scale_0), "r" (out_offset)
+        );
+        __asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_0_out_1)
+            : "r" (ch_0_out_1), "r" (scale_0), "r" (out_offset)
+        );
+        __asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_1_out_0)
+            : "r" (ch_1_out_0), "r" (scale_1), "r" (out_offset)
+        );
+        __asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_1_out_1)
+            : "r" (ch_1_out_1), "r" (scale_1), "r" (out_offset)
+        );
+        __asm volatile (
+            "SSAT %0, #8, %1"
+            : "=r" (ch_0_out_0)
+            : "r" (ch_0_out_0)
+        );
+        __asm volatile (
+            "SSAT %0, #8, %1"
+            : "=r" (ch_0_out_1)
+            : "r" (ch_0_out_1)
+        );
+        __asm volatile (
+            "SSAT %0, #8, %1"
+            : "=r" (ch_1_out_0)
+            : "r" (ch_1_out_0)
+        );
+        __asm volatile (
+            "SSAT %0, #8, %1"
+            : "=r" (ch_1_out_1)
+            : "r" (ch_1_out_1)
+        );
+		*out_0++ = (q7_t) ch_0_out_0;
+		*out_1++ = (q7_t) ch_0_out_1;
+		*out_0++ = (q7_t) ch_1_out_0;
+		*out_1++ = (q7_t) ch_1_out_1;
+
+		iscales += 2;
+
+		/* skip row */
+		ip_a0 += num_col_a;
+		row_count--;
+	}
+
+	if (output_ch & 1) {
+		/* setup pointers for B */
+		const q15_t *ip_b0 = input_b;
+		const q15_t *ip_b1 = ip_b0 + num_col_a;
+        //const q7_t *ip_a0 = ip_a0_;
+
+		/* Init accumulator with bias for channel N + 1 */
+		q31_t ch_0_out_0 = *bias;
+		q31_t ch_0_out_1 = ch_0_out_0;
+
+		int32_t col_count = num_col_a / 4;
+		while (col_count) {
+			q31_t a01, a02;
+			q31_t b0 = arm_nn_read_q15x2_ia(&ip_b0);
+			q31_t b1 = arm_nn_read_q15x2_ia(&ip_b1);
+
+			ip_a0 = read_and_pad_reordered(ip_a0, &a01, &a02);
+
+			ch_0_out_0 = __SMLAD(a01, b0, ch_0_out_0);
+			ch_0_out_1 = __SMLAD(a01, b1, ch_0_out_1);
+
+			b0 = arm_nn_read_q15x2_ia(&ip_b0);
+			b1 = arm_nn_read_q15x2_ia(&ip_b1);
+
+			ch_0_out_0 = __SMLAD(a02, b0, ch_0_out_0);
+			ch_0_out_1 = __SMLAD(a02, b1, ch_0_out_1);
+
+			col_count--;
+		} /* while over col_count */
+
+        int32_t scale_0=*iscales;
+		__asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_0_out_0)
+            : "r" (ch_0_out_0), "r" (scale_0), "r" (out_offset)
+        );
+		ch_0_out_0 = MAX(ch_0_out_0, activation_min);
+		ch_0_out_0 = MIN(ch_0_out_0, activation_max);
+		*out_0++ = (q7_t) ch_0_out_0;
+
+		__asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_0_out_1)
+            : "r" (ch_0_out_1), "r" (scale_0), "r" (out_offset)
+        );
 		ch_0_out_1 = MAX(ch_0_out_1, activation_min);
 		ch_0_out_1 = MIN(ch_0_out_1, activation_max);
 		*out_1++ = (q7_t) ch_0_out_1;
@@ -1840,7 +2104,7 @@ q7_t* mat_mult_kernel3_input3_s8_s16_fpreq(const q7_t *input_a,
 	/* set up the second output pointers */
 	q7_t *out_1 = out_0 + output_ch;
 	const int32_t *bias = output_bias;
-
+    const int32_t *iscales=scales;
 	uint16_t row_count = output_ch / 2;
 	const q15_t *ksrc = &kbuf[0];
 	/* this loop over rows in A */
@@ -1850,8 +2114,8 @@ q7_t* mat_mult_kernel3_input3_s8_s16_fpreq(const q7_t *input_a,
 		const q15_t *ip_b1 = ip_b0 + num_col_a;
 		const q31_t *ip31_b0 = ip_b0;
 		const q31_t *ip31_b1 = ip_b1;
-		const float scale_0 = scales[0];
-		const float scale_1 = scales[1];
+		const int32_t scale_0 = iscales[0];
+		const int32_t scale_1 = iscales[1];
 
 		/* align the second pointer for A */
 		const q15_t *ksrc2 = ksrc + 27;
@@ -1979,30 +2243,245 @@ q7_t* mat_mult_kernel3_input3_s8_s16_fpreq(const q7_t *input_a,
 		ch_1_out_0 += ksrc2[26] * _b0;
 		ch_1_out_1 += ksrc2[26] * _b1;
 
-		ch_0_out_0 = (q31_t) roundf((float) ch_0_out_0 * scale_0);
-		ch_0_out_0 += out_offset;
+        __asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_0_out_0)
+            : "r" (ch_0_out_0), "r" (scale_0), "r" (out_offset)
+        );
+        __asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_0_out_1)
+            : "r" (ch_0_out_1), "r" (scale_0), "r" (out_offset)
+        );
+        __asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_1_out_0)
+            : "r" (ch_1_out_0), "r" (scale_1), "r" (out_offset)
+        );
+        __asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_1_out_1)
+            : "r" (ch_1_out_1), "r" (scale_1), "r" (out_offset)
+        );
+
 		ch_0_out_0 = MAX(ch_0_out_0, activation_min);
-		ch_0_out_0 = MIN(ch_0_out_0, activation_max);
-		*out_0++ = (q7_t) ch_0_out_0;
-
-		ch_0_out_1 = (q31_t) roundf((float) ch_0_out_1 * scale_0);
-		ch_0_out_1 += out_offset;
 		ch_0_out_1 = MAX(ch_0_out_1, activation_min);
-		ch_0_out_1 = MIN(ch_0_out_1, activation_max);
-		*out_1++ = (q7_t) ch_0_out_1;
-
-		ch_1_out_0 = (q31_t) roundf((float) ch_1_out_0 * scale_1);
-		ch_1_out_0 += out_offset;
 		ch_1_out_0 = MAX(ch_1_out_0, activation_min);
-		ch_1_out_0 = MIN(ch_1_out_0, activation_max);
-		*out_0++ = (q7_t) ch_1_out_0;
-
-		ch_1_out_1 = (q31_t) roundf((float) ch_1_out_1 * scale_1);
-		ch_1_out_1 += out_offset;
 		ch_1_out_1 = MAX(ch_1_out_1, activation_min);
+		ch_0_out_0 = MIN(ch_0_out_0, activation_max);
+		ch_0_out_1 = MIN(ch_0_out_1, activation_max);
+		ch_1_out_0 = MIN(ch_1_out_0, activation_max);
 		ch_1_out_1 = MIN(ch_1_out_1, activation_max);
+		*out_0++ = (q7_t) ch_0_out_0;
+		*out_1++ = (q7_t) ch_0_out_1;
+		*out_0++ = (q7_t) ch_1_out_0;
 		*out_1++ = (q7_t) ch_1_out_1;
-		scales += 2;
+		iscales += 2;
+
+		/* skip row */
+		ksrc += 54;
+		row_count--;
+	}
+
+	out_0 += output_ch;
+
+	/* return the new output pointer with offset */
+	return out_0;
+}
+
+q7_t* mat_mult_kernel3_input3_s8_s16_ssat_fpreq(const q7_t *input_a,
+		const q15_t *input_b, const uint16_t output_ch, const float *scales,
+		const int32_t out_offset, const int16_t activation_min,
+		const int16_t activation_max, const uint16_t num_col_a,
+		const int32_t *const output_bias, q7_t *out_0, q15_t *kbuf) {
+	/* set up the second output pointers */
+	q7_t *out_1 = out_0 + output_ch;
+	const int32_t *bias = output_bias;
+    const int32_t *iscales=scales;
+	uint16_t row_count = output_ch / 2;
+	const q15_t *ksrc = &kbuf[0];
+	/* this loop over rows in A */
+	while (row_count) {
+		/* setup pointers for B */
+		const q15_t *ip_b0 = input_b;
+		const q15_t *ip_b1 = ip_b0 + num_col_a;
+		const q31_t *ip31_b0 = ip_b0;
+		const q31_t *ip31_b1 = ip_b1;
+		const int32_t scale_0 = iscales[0];
+		const int32_t scale_1 = iscales[1];
+
+		/* align the second pointer for A */
+		const q15_t *ksrc2 = ksrc + 27;
+		q31_t *ksrc_31 = ksrc;
+		q31_t *ksrc2_31 = ksrc2;
+
+		/* Init accumulator with bias for channel N and N + 1 */
+		q31_t ch_0_out_0 = *bias;
+		q31_t ch_0_out_1 = *bias++;
+		q31_t ch_1_out_0 = *bias;
+		q31_t ch_1_out_1 = *bias++;
+
+		//------------------4
+		q31_t a01, a02, a11, a12;
+		q31_t b0 = arm_nn_read_q15x2_ia(&ip_b0);
+		q31_t b1 = arm_nn_read_q15x2_ia(&ip_b1);
+
+		ch_0_out_0 = __SMLAD(ksrc_31[0], b0, ch_0_out_0);
+		ch_0_out_1 = __SMLAD(ksrc_31[0], b1, ch_0_out_1);
+		ch_1_out_0 = __SMLAD(ksrc2_31[0], b0, ch_1_out_0);
+		ch_1_out_1 = __SMLAD(ksrc2_31[0], b1, ch_1_out_1);
+
+		b0 = arm_nn_read_q15x2_ia(&ip_b0);
+		b1 = arm_nn_read_q15x2_ia(&ip_b1);
+
+		ch_0_out_0 = __SMLAD(ksrc_31[1], b0, ch_0_out_0);
+		ch_0_out_1 = __SMLAD(ksrc_31[1], b1, ch_0_out_1);
+		ch_1_out_0 = __SMLAD(ksrc2_31[1], b0, ch_1_out_0);
+		ch_1_out_1 = __SMLAD(ksrc2_31[1], b1, ch_1_out_1);
+
+		//------------------8
+		b0 = arm_nn_read_q15x2_ia(&ip_b0);
+		b1 = arm_nn_read_q15x2_ia(&ip_b1);
+
+		ch_0_out_0 = __SMLAD(ksrc_31[2], b0, ch_0_out_0);
+		ch_0_out_1 = __SMLAD(ksrc_31[2], b1, ch_0_out_1);
+		ch_1_out_0 = __SMLAD(ksrc2_31[2], b0, ch_1_out_0);
+		ch_1_out_1 = __SMLAD(ksrc2_31[2], b1, ch_1_out_1);
+
+		b0 = arm_nn_read_q15x2_ia(&ip_b0);
+		b1 = arm_nn_read_q15x2_ia(&ip_b1);
+
+		ch_0_out_0 = __SMLAD(ksrc_31[3], b0, ch_0_out_0);
+		ch_0_out_1 = __SMLAD(ksrc_31[3], b1, ch_0_out_1);
+		ch_1_out_0 = __SMLAD(ksrc2_31[3], b0, ch_1_out_0);
+		ch_1_out_1 = __SMLAD(ksrc2_31[3], b1, ch_1_out_1);
+
+		//------------------12
+		b0 = arm_nn_read_q15x2_ia(&ip_b0);
+		b1 = arm_nn_read_q15x2_ia(&ip_b1);
+
+		ch_0_out_0 = __SMLAD(ksrc_31[4], b0, ch_0_out_0);
+		ch_0_out_1 = __SMLAD(ksrc_31[4], b1, ch_0_out_1);
+		ch_1_out_0 = __SMLAD(ksrc2_31[4], b0, ch_1_out_0);
+		ch_1_out_1 = __SMLAD(ksrc2_31[4], b1, ch_1_out_1);
+
+		b0 = arm_nn_read_q15x2_ia(&ip_b0);
+		b1 = arm_nn_read_q15x2_ia(&ip_b1);
+
+		ch_0_out_0 = __SMLAD(ksrc_31[5], b0, ch_0_out_0);
+		ch_0_out_1 = __SMLAD(ksrc_31[5], b1, ch_0_out_1);
+		ch_1_out_0 = __SMLAD(ksrc2_31[5], b0, ch_1_out_0);
+		ch_1_out_1 = __SMLAD(ksrc2_31[5], b1, ch_1_out_1);
+
+		//------------------16
+		b0 = arm_nn_read_q15x2_ia(&ip_b0);
+		b1 = arm_nn_read_q15x2_ia(&ip_b1);
+		ch_0_out_0 = __SMLAD(ksrc_31[6], b0, ch_0_out_0);
+		ch_0_out_1 = __SMLAD(ksrc_31[6], b1, ch_0_out_1);
+		ch_1_out_0 = __SMLAD(ksrc2_31[6], b0, ch_1_out_0);
+		ch_1_out_1 = __SMLAD(ksrc2_31[6], b1, ch_1_out_1);
+
+		b0 = arm_nn_read_q15x2_ia(&ip_b0);
+		b1 = arm_nn_read_q15x2_ia(&ip_b1);
+
+		ch_0_out_0 = __SMLAD(ksrc_31[7], b0, ch_0_out_0);
+		ch_0_out_1 = __SMLAD(ksrc_31[7], b1, ch_0_out_1);
+		ch_1_out_0 = __SMLAD(ksrc2_31[7], b0, ch_1_out_0);
+		ch_1_out_1 = __SMLAD(ksrc2_31[7], b1, ch_1_out_1);
+
+		//------------------20
+		b0 = arm_nn_read_q15x2_ia(&ip_b0);
+		b1 = arm_nn_read_q15x2_ia(&ip_b1);
+		ch_0_out_0 = __SMLAD(ksrc_31[8], b0, ch_0_out_0);
+		ch_0_out_1 = __SMLAD(ksrc_31[8], b1, ch_0_out_1);
+		ch_1_out_0 = __SMLAD(ksrc2_31[8], b0, ch_1_out_0);
+		ch_1_out_1 = __SMLAD(ksrc2_31[8], b1, ch_1_out_1);
+
+		b0 = arm_nn_read_q15x2_ia(&ip_b0);
+		b1 = arm_nn_read_q15x2_ia(&ip_b1);
+
+		ch_0_out_0 = __SMLAD(ksrc_31[9], b0, ch_0_out_0);
+		ch_0_out_1 = __SMLAD(ksrc_31[9], b1, ch_0_out_1);
+		ch_1_out_0 = __SMLAD(ksrc2_31[9], b0, ch_1_out_0);
+		ch_1_out_1 = __SMLAD(ksrc2_31[9], b1, ch_1_out_1);
+
+		//------------------24
+		b0 = arm_nn_read_q15x2_ia(&ip_b0);
+		b1 = arm_nn_read_q15x2_ia(&ip_b1);
+		ch_0_out_0 = __SMLAD(ksrc_31[10], b0, ch_0_out_0);
+		ch_0_out_1 = __SMLAD(ksrc_31[10], b1, ch_0_out_1);
+		ch_1_out_0 = __SMLAD(ksrc2_31[10], b0, ch_1_out_0);
+		ch_1_out_1 = __SMLAD(ksrc2_31[10], b1, ch_1_out_1);
+
+		b0 = arm_nn_read_q15x2_ia(&ip_b0);
+		b1 = arm_nn_read_q15x2_ia(&ip_b1);
+
+		ch_0_out_0 = __SMLAD(ksrc_31[11], b0, ch_0_out_0);
+		ch_0_out_1 = __SMLAD(ksrc_31[11], b1, ch_0_out_1);
+		ch_1_out_0 = __SMLAD(ksrc2_31[11], b0, ch_1_out_0);
+		ch_1_out_1 = __SMLAD(ksrc2_31[11], b1, ch_1_out_1);
+
+		//------------------25,26,27
+		b0 = arm_nn_read_q15x2_ia(&ip_b0);
+		b1 = arm_nn_read_q15x2_ia(&ip_b1);
+		ch_0_out_0 = __SMLAD(ksrc_31[12], b0, ch_0_out_0);
+		ch_0_out_1 = __SMLAD(ksrc_31[12], b1, ch_0_out_1);
+		ch_1_out_0 = __SMLAD(ksrc2_31[12], b0, ch_1_out_0);
+		ch_1_out_1 = __SMLAD(ksrc2_31[12], b1, ch_1_out_1);
+		q15_t _b0 = *ip_b0++;
+		q15_t _b1 = *ip_b1++;
+
+		ch_0_out_0 += ksrc[26] * _b0;
+		ch_0_out_1 += ksrc[26] * _b1;
+		ch_1_out_0 += ksrc2[26] * _b0;
+		ch_1_out_1 += ksrc2[26] * _b1;
+
+        __asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_0_out_0)
+            : "r" (ch_0_out_0), "r" (scale_0), "r" (out_offset)
+        );
+        __asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_0_out_1)
+            : "r" (ch_0_out_1), "r" (scale_0), "r" (out_offset)
+        );
+        __asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_1_out_0)
+            : "r" (ch_1_out_0), "r" (scale_1), "r" (out_offset)
+        );
+        __asm volatile (
+            "SMMLA %0, %1, %2, %3"
+            : "=r" (ch_1_out_1)
+            : "r" (ch_1_out_1), "r" (scale_1), "r" (out_offset)
+        );
+
+        __asm volatile (
+            "SSAT %0, #8, %1"
+            : "=r" (ch_0_out_0)
+            : "r" (ch_0_out_0)
+        );
+        __asm volatile (
+            "SSAT %0, #8, %1"
+            : "=r" (ch_0_out_1)
+            : "r" (ch_0_out_1)
+        );
+        __asm volatile (
+            "SSAT %0, #8, %1"
+            : "=r" (ch_1_out_0)
+            : "r" (ch_1_out_0)
+        );
+        __asm volatile (
+            "SSAT %0, #8, %1"
+            : "=r" (ch_1_out_1)
+            : "r" (ch_1_out_1)
+        );
+		*out_0++ = (q7_t) ch_0_out_0;
+		*out_1++ = (q7_t) ch_0_out_1;
+		*out_0++ = (q7_t) ch_1_out_0;
+		*out_1++ = (q7_t) ch_1_out_1;
+		iscales += 2;
 
 		/* skip row */
 		ksrc += 54;

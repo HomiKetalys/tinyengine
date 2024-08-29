@@ -30,7 +30,7 @@ def GenerateSourceFilesFromTFlite(
     codegen_root="./codegen",
     model_name="network",
 ):
-    use_inplace = False
+    use_inplace = True
     os.makedirs(codegen_root,exist_ok=True)
     os.makedirs(os.path.split(life_cycle_path)[0],exist_ok=True)
 
@@ -74,6 +74,7 @@ def GenerateSourceFilesFromTFlite(
             outputTables=outTable,
             codegen_root=codegen_root,
             model_name=model_name,
+            max_table_id=tf_convertor.table_id,
         )
         # set detection outputs before codegen if any
         code_generator.codeGeneration()

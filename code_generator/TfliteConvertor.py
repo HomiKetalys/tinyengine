@@ -18,6 +18,8 @@
 
 import logging
 
+import numpy as np
+
 from .converters import tflite_parser as TF_Parser
 from .converters.tflite_parser.mean1dto2d import MEAN2D
 from .converters.tflite_parser.utils import get_input_tensors, get_output_tensors, getOpCodeStr, get_nhwc_from_shape
@@ -37,7 +39,10 @@ class TfliteConvertor(object):
         self.tmpPADIndices = {}
         self.skip_transpose = None
         self.average_1D_to_2D_holder = MEAN2D()  # For merging 1D to 2D
-        self.last_id=None
+        self.last_id = None
+        self.sparse_rect = {}
+        self.pass_ops = {}
+        self.table_id=0
 
     # public functions
     def loadTFmodel(self, filepath):
@@ -110,34 +115,34 @@ class TfliteConvertor(object):
             self._handleOperator(op)
 
     def get_input_shape(self):
-        if len(self.layer)==0:
+        if len(self.layer) == 0:
             return None
         else:
-            return self.layer[0].params['input_h'],self.layer[0].params['input_w'],self.layer[0].params['input_c']
+            return self.layer[0].params['input_h'], self.layer[0].params['input_w'], self.layer[0].params['input_c']
 
     # handle one op and parse it into layers[] for supported operators
     def _handleOperator(self, op):
         op_code_str = getOpCodeStr(op, self.model)
+        ret_op = None
+        pass_op = False
         if op_code_str == "CONV_2D":
-            self.layer.append(TF_Parser.parse_conv2d(op, self.model, self.tmpPADIndices))
-            # self.tmpPADIndices = None
+            ret_op = TF_Parser.parse_conv2d(op, self.model)
         elif op_code_str == "ADD":
-            self.layer.append(TF_Parser.parse_add(op, self.model))
-        elif op_code_str =="CONCATENATION":
-            self.layer.append(TF_Parser.parse_concat(op,self.model))
-        elif op_code_str =="GATHER":
-            self.layer.append(TF_Parser.parse_gather(op,self.model))
+            ret_op = TF_Parser.parse_add(op, self.model)
+        elif op_code_str == "CONCATENATION":
+            ret_op = TF_Parser.parse_concat(op, self.model)
+        elif op_code_str == "GATHER":
+            ret_op = TF_Parser.parse_gather(op, self.model)
         elif op_code_str == "AVERAGE_POOL_2D":
-            self.layer.append(TF_Parser.parse_avgpool(op, self.model))
+            ret_op = TF_Parser.parse_avgpool(op, self.model)
         elif op_code_str == "DEPTHWISE_CONV_2D":
-            self.layer.append(TF_Parser.parse_conv2d(op, self.model, self.tmpPADIndices))
-            # self.tmpPADIndices = None
+            ret_op = TF_Parser.parse_conv2d(op, self.model)
         elif op_code_str == "PAD":
-            self._convert_PAD(op)
+            pass_op = True
         elif op_code_str == "RESIZE_NEAREST_NEIGHBOR":
-            self.layer.append(TF_Parser.parse_upsample(op, self.model))
+            ret_op = TF_Parser.parse_upsample(op, self.model)
         elif op_code_str == "MAX_POOL_2D":
-            self.layer.append(TF_Parser.parse_maxpool(op, self.model))
+            ret_op = TF_Parser.parse_maxpool(op, self.model)
         elif op_code_str in "MEAN":
             ret_op = TF_Parser.parse_mead1dto2d(op, self.model, self.average_1D_to_2D_holder)
             if ret_op is not None:
@@ -145,43 +150,80 @@ class TfliteConvertor(object):
                 if self.skip_transpose is not None:
                     ret_op.params["input_idx"] = self.skip_transpose.input_idx
                     ret_op.input_tensors[0].graph_idx = self.skip_transpose.input_idx
-                self.layer.append(ret_op)
         elif op_code_str == "TRANSPOSE":
-            # self._convert_TRANSPOSE(op)
-            if self.last_id is None:
-                self.last_id=get_input_tensors(op, self.model)[0].tensor_idx
+            pass_op = True
         elif op_code_str == "FULLY_CONNECTED":
-            self.layer.append(TF_Parser.parse_fc(op, self.model))
+            ret_op = TF_Parser.parse_fc(op, self.model)
         elif op_code_str in SKIP_OPs:
-            if self.last_id is None:
-                self.last_id=get_input_tensors(op, self.model)[0].tensor_idx
+            pass_op = True
         elif op_code_str == "LOGISTIC":
-            self.layer.append(TF_Parser.parse_sigmoid(op, self.model))
+            ret_op = TF_Parser.parse_sigmoid(op, self.model,self.table_id)
+            self.table_id+=1
         elif op_code_str == "SOFTMAX":
-            if self.last_id is None:
-                self.last_id=get_input_tensors(op, self.model)[0].tensor_idx
+            ret_op = TF_Parser.parse_softmax(op, self.model,self.table_id)
         elif op_code_str == "TANH":
-            self.layer.append(TF_Parser.parse_tanh(op, self.model))
+            ret_op = TF_Parser.parse_tanh(op, self.model,self.table_id)
+            self.table_id += 1
         elif op_code_str == "QUANTIZE":
-            self.layer.append(TF_Parser.parse_quantize(op, self.model))
+            ret_op = TF_Parser.parse_quantize(op, self.model,self.table_id)
+            self.table_id += 1
         elif op_code_str == "DEQUANTIZE":
-            self.layer.append(TF_Parser.parse_dequantize(op, self.model, self.last_id))
-            if self.last_id is not None:
-                self.last_id=None
+            ret_op = TF_Parser.parse_dequantize(op, self.model, self.last_id)
         else:
             raise NotImplementedError(f"Unsupported {op_code_str}")
+
+        self.sparse_graph(op,ret_op,pass_op)
+        if ret_op is not None:
+            self.layer.append(ret_op)
 
     #         -> MEAN -> MEAN -> PWCONV -> PWCONV -> | ADD -> MUL ->     |
     #  DWCONV                                        |            -> MUL |
     #                                                |    Fuse Target    |
     def checkIfRequireSEelementmult(self, three_op_sequence):
         if (
-            getOpCodeStr(three_op_sequence[0], self.model) == "ADD"
-            and getOpCodeStr(three_op_sequence[1], self.model) == "MUL"
-            and getOpCodeStr(three_op_sequence[2], self.model) == "MUL"
+                getOpCodeStr(three_op_sequence[0], self.model) == "ADD"
+                and getOpCodeStr(three_op_sequence[1], self.model) == "MUL"
+                and getOpCodeStr(three_op_sequence[2], self.model) == "MUL"
         ):
             return True
         return False
+
+    def sparse_graph(self, op, ret_op, pass_op=False):
+        # get input, weight, and output tensors
+        input_tensors = get_input_tensors(op, self.model)
+        input_idxs = [x.tensor_idx for x in input_tensors]
+
+        output_tensors = get_output_tensors(op, self.model)
+        assert len(output_tensors) == 1, "output tensors length should be 1"
+        output_idx = output_tensors[0].tensor_idx
+
+        if pass_op:
+            if input_idxs[0] in self.pass_ops:
+                input_idx = self.pass_ops[input_idxs[0]]
+            else:
+                input_idx=input_idxs[0]
+            self.pass_ops[output_idx] = input_idx
+        else:
+            real_input_idxs=[]
+            for key in ret_op.params.keys():
+                if "input" in key and "idx" in key:
+                    x=ret_op.params[key]
+                    if x in self.pass_ops.keys():
+                        x=self.pass_ops[x]
+                    ret_op.params[key]=x
+                    real_input_idxs.append(x)
+            for inp_tensor in ret_op.input_tensors:
+                if int(inp_tensor.graph_idx) in self.pass_ops.keys():
+                    inp_tensor.graph_idx=str(self.pass_ops[int(inp_tensor.graph_idx)])
+            for idx in real_input_idxs:
+                if idx in self.sparse_rect.keys():
+                    for out_id in self.sparse_rect[idx].keys():
+                        other_ret_op = self.sparse_rect[idx][out_id]
+                        if "inplace" in other_ret_op.params.keys():
+                            other_ret_op.params["inplace"] = False
+                    self.sparse_rect[idx][output_idx] = ret_op
+                else:
+                    self.sparse_rect[idx] = {output_idx: ret_op}
 
     def _convert_PAD(self, op):
         # get input, weight, and output tensors
@@ -193,7 +235,8 @@ class TfliteConvertor(object):
         output_tensor = output_tensors[0]
 
         # fuse pad into conv
-        self.tmpPADIndices[output_tensor.tensor_idx] = PAD_tensorIndice(input_tensor.tensor_idx, output_tensor.tensor_idx)
+        self.tmpPADIndices[output_tensor.tensor_idx] = PAD_tensorIndice(input_tensor.tensor_idx,
+                                                                        output_tensor.tensor_idx)
 
     def _convert_TRANSPOSE(self, op):
         # get input, weight, and output tensors

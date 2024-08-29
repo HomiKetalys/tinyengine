@@ -6,7 +6,7 @@ from common_utils.tinyengine.code_generator.operators import concat
 from common_utils.tinyengine.code_generator.tflite import Model
 
 from .utils import get_input_tensors, get_nhwc_from_shape, get_output_tensors, getOpCodeStr, getTensorTypeStr
-
+from ...tflite.ConcatenationOptions import ConcatenationOptions
 
 def parse_concat(op, model: Model.Model):
     # operator
@@ -16,6 +16,12 @@ def parse_concat(op, model: Model.Model):
     input_tensors = get_input_tensors(op, model)
     input_tensor_count = len(input_tensors)
     # assert input_tensor_count == 2, "input should be 2 tensors"
+
+    op_options = op.BuiltinOptions()
+    concat_options = ConcatenationOptions()
+    concat_options.Init(op_options.Bytes, op_options.Pos)
+    axis=concat_options.Axis()
+
     if input_tensor_count==2:
         input_tensor = input_tensors[0]
         input2_tensor = input_tensors[1]
@@ -28,9 +34,25 @@ def parse_concat(op, model: Model.Model):
         _, input_h, input_w, input_c = get_nhwc_from_shape(input_tensor.tensor.ShapeAsNumpy())
         _, input2_h, input2_w, input2_c = get_nhwc_from_shape(input2_tensor.tensor.ShapeAsNumpy())
         _, output_h, output_w, output_c = get_nhwc_from_shape(output_tensor.tensor.ShapeAsNumpy())
-        assert input_h == input2_h == output_h, "tensor shpae not consistent"
-        assert input_w == input2_w == output_w, "tensor shpae not consistent"
-        assert input_c + input2_c == output_c, "tensor shpae not consistent"
+        # assert input_h == input2_h == output_h, "tensor shpae not consistent"
+        # assert input_w == input2_w == output_w, "tensor shpae not consistent"
+        # assert input_c + input2_c == output_c, "tensor shpae not consistent"
+
+        input_shape = get_nhwc_from_shape(input_tensor.tensor.ShapeAsNumpy())
+        input2_shape = get_nhwc_from_shape(input2_tensor.tensor.ShapeAsNumpy())
+        output_shape = get_nhwc_from_shape(output_tensor.tensor.ShapeAsNumpy())
+        input_h=1
+        input_w=1
+        if axis==-1:
+            axis=len(input_shape)-1
+        for i in range(0,axis):
+            input_w*=input_shape[i]
+        input_c=1
+        for i in range(axis,len(input_shape)):
+            input_c*=input_shape[i]
+        input2_c = 1
+        for i in range(axis, len(input2_shape)):
+            input2_c *= input2_shape[i]
 
         # tensor types
         input_type = getTensorTypeStr(input_tensor.tensor.Type())
@@ -76,9 +98,29 @@ def parse_concat(op, model: Model.Model):
         _, input2_h, input2_w, input2_c = get_nhwc_from_shape(input2_tensor.tensor.ShapeAsNumpy())
         _, input3_h, input3_w, input3_c = get_nhwc_from_shape(input3_tensor.tensor.ShapeAsNumpy())
         _, output_h, output_w, output_c = get_nhwc_from_shape(output_tensor.tensor.ShapeAsNumpy())
-        assert input_h == input2_h == input3_h ==output_h, "tensor shpae not consistent"
-        assert input_w == input2_w == input3_h ==output_w, "tensor shpae not consistent"
-        assert input_c + input2_c+input3_c == output_c, "tensor shpae not consistent"
+        # assert input_h == input2_h == input3_h ==output_h, "tensor shpae not consistent"
+        # assert input_w == input2_w == input3_h ==output_w, "tensor shpae not consistent"
+        # assert input_c + input2_c+input3_c == output_c, "tensor shpae not consistent"
+
+        input_shape = get_nhwc_from_shape(input_tensor.tensor.ShapeAsNumpy())
+        input2_shape = get_nhwc_from_shape(input2_tensor.tensor.ShapeAsNumpy())
+        input3_shape = get_nhwc_from_shape(input3_tensor.tensor.ShapeAsNumpy())
+        output_shape = get_nhwc_from_shape(output_tensor.tensor.ShapeAsNumpy())
+        input_h=1
+        input_w=1
+        if axis==-1:
+            axis=len(input_shape)-1
+        for i in range(0,axis):
+            input_w*=input_shape[i]
+        input_c=1
+        for i in range(axis,len(input_shape)):
+            input_c*=input_shape[i]
+        input2_c = 1
+        for i in range(axis, len(input2_shape)):
+            input2_c *= input2_shape[i]
+        input3_c = 1
+        for i in range(axis, len(input3_shape)):
+            input3_c *= input3_shape[i]
 
         # tensor types
         input_type = getTensorTypeStr(input_tensor.tensor.Type())
@@ -132,9 +174,33 @@ def parse_concat(op, model: Model.Model):
         _, input3_h, input3_w, input3_c = get_nhwc_from_shape(input3_tensor.tensor.ShapeAsNumpy())
         _, input4_h, input4_w, input4_c = get_nhwc_from_shape(input4_tensor.tensor.ShapeAsNumpy())
         _, output_h, output_w, output_c = get_nhwc_from_shape(output_tensor.tensor.ShapeAsNumpy())
-        assert input_h == input2_h == input3_h ==input4_h ==output_h, "tensor shpae not consistent"
-        assert input_w == input2_w == input3_w ==input4_w ==output_w, "tensor shpae not consistent"
-        assert input_c + input2_c+input3_c +input4_c== output_c, "tensor shpae not consistent"
+        # assert input_h == input2_h == input3_h ==input4_h ==output_h, "tensor shpae not consistent"
+        # assert input_w == input2_w == input3_w ==input4_w ==output_w, "tensor shpae not consistent"
+        # assert input_c + input2_c+input3_c +input4_c== output_c, "tensor shpae not consistent"
+
+        input_shape = get_nhwc_from_shape(input_tensor.tensor.ShapeAsNumpy())
+        input2_shape = get_nhwc_from_shape(input2_tensor.tensor.ShapeAsNumpy())
+        input3_shape = get_nhwc_from_shape(input3_tensor.tensor.ShapeAsNumpy())
+        input4_shape = get_nhwc_from_shape(input4_tensor.tensor.ShapeAsNumpy())
+        output_shape = get_nhwc_from_shape(output_tensor.tensor.ShapeAsNumpy())
+        input_h=1
+        input_w=1
+        if axis==-1:
+            axis=len(input_shape)-1
+        for i in range(0,axis):
+            input_w*=input_shape[i]
+        input_c=1
+        for i in range(axis,len(input_shape)):
+            input_c*=input_shape[i]
+        input2_c = 1
+        for i in range(axis, len(input2_shape)):
+            input2_c *= input2_shape[i]
+        input3_c = 1
+        for i in range(axis, len(input3_shape)):
+            input3_c *= input3_shape[i]
+        input4_c = 1
+        for i in range(axis, len(input4_shape)):
+            input4_c *= input4_shape[i]
 
         # tensor types
         input_type = getTensorTypeStr(input_tensor.tensor.Type())
